@@ -1,0 +1,167 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  background: url('https://images.unsplash.com/photo-1624453431007-2a6262085e07?ixlib=rb-4.0.3&auto=format&fit=crop&w=1950&q=80') no-repeat center center fixed;
+  background-size: cover;
+  color: #2A3A2E;
+  position: relative;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4); /* Затемнение фона для читаемости текста */
+  z-index: -1;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  color: #FFFFFF; /* Белый цвет для заголовков */
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+p, label, span {
+  color: #2A3A2E; /* Темный текст для читаемости на светлом фоне */
+}
+
+button {
+  font-family: 'Poppins', sans-serif;
+  transition: all 0.3s ease;
+  background: #4A90E2; /* Синий фон для кнопок */
+  color: #FFD700; /* Золотой текст */
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+  background: #5AA0F2;
+}
+
+input, textarea {
+  font-family: 'Poppins', sans-serif;
+  border: 1px solid rgba(42, 58, 46, 0.3);
+  background: rgba(245, 230, 204, 0.3); /* Песочный фон для полей */
+  color: #2A3A2E;
+  border-radius: 8px;
+  padding: 10px;
+  transition: all 0.3s ease;
+}
+
+input:focus, textarea:focus {
+  outline: none;
+  border-color: #C8102E;
+  background: rgba(245, 230, 204, 0.5);
+}
+
+input::placeholder, textarea::placeholder {
+  color: #5A7A63;
+}
+
+.card {
+  background: rgba(245, 230, 204, 0.9); /* Песочный фон для карточек */
+  border-radius: 16px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  backdrop-filter: blur(5px);
+  padding: 20px;
+  width: 100%;
+  max-width: 400px; /* Увеличенный размер карточек */
+  height: auto;
+  min-height: 650px; /* Минимальная высота для избежания "съезжания" */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.card img {
+  width: 100%;
+  height: 250px; /* Увеличенная высота изображения */
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.card-content {
+  flex: 1;
+  padding-top: 15px;
+}
+
+.promotion-tag {
+  background: linear-gradient(135deg, #C8102E, #FF6F61); /* Градиент для акций */
+  color: #FFD700;
+  padding: 6px 12px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  margin-top: 10px;
+}
+
+.promotion-tag i {
+  font-size: 1rem;
+}
+
+.review-block {
+  background: rgba(245, 230, 204, 0.7);
+  padding: 10px;
+  border-radius: 8px;
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.review-block p {
+  margin: 0;
+  color: #2A3A2E;
+}
+
+.bg-primary {
+  background: #5A7A63;
+}
+
+.text-primary {
+  color: #C8102E;
+}
+
+.bg-secondary {
+  background: rgba(245, 230, 204, 0.2);
+}
+
+.text-secondary {
+  color: #5A7A63;
+}
+
+nav {
+  background: rgba(42, 58, 46, 0.9);
+  backdrop-filter: blur(5px);
+}
+
+.filter-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filter-label i {
+  color: #C8102E;
+}
