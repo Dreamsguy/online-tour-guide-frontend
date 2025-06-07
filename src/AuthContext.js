@@ -1,56 +1,47 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const AuthContext = createContext();
 
-export function AuthProvider({ children }) {
+export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [users, setUsers] = useState(() => {
-    const storedUsers = localStorage.getItem('users');
-    return storedUsers
-      ? JSON.parse(storedUsers)
-      : [
-          { email: 'admin@belarusguide.by', name: 'Админ', role: 'admin', createdAt: new Date().toISOString() },
-          { email: 'guide@belarusguide.by', name: 'Гид Иван', role: 'guide', createdAt: new Date().toISOString() },
-          { email: 'manager@belarusguide.by', name: 'Менеджер Мария', role: 'manager', createdAt: new Date().toISOString() },
-        ];
-  });
-  const [settings, setSettings] = useState(() => {
-    const storedSettings = localStorage.getItem('settings');
-    return storedSettings ? JSON.parse(storedSettings) : { currency: 'EUR', language: 'ru' };
-  });
+  const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    localStorage.setItem('users', JSON.stringify(users));
-  }, [users]);
-
-  useEffect(() => {
-    localStorage.setItem('settings', JSON.stringify(settings));
-  }, [settings]);
-
-  const login = (email, password, name = 'Пользователь', role = 'user') => {
-    const foundUser = users.find(u => u.email === email && u.email.includes('@belarusguide.by'));
-    if (foundUser && password !== 'vk-auth') {
-      setUser({ email: foundUser.email, name: foundUser.name, role: foundUser.role });
-    } else if (password !== 'vk-auth') {
-      const newUser = { email, name, role, createdAt: new Date().toISOString() };
-      setUsers([...users, newUser]);
-      setUser(newUser);
-    } else {
-      throw new Error('Неверные учетные данные');
+    const storedUser = localStorage.getItem('user');
+    const token = localStorage.getItem('token');
+    if (storedUser && token) {
+      setUser(JSON.parse(storedUser));
     }
+    setIsLoading(false);
+  }, []);
+
+  const login = (token, userData) => {
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(userData));
+    setUser(userData);
+    console.log('Токен сохранен:', token);
   };
 
   const logout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setUser(null);
+    navigate('/login');
   };
 
   return (
-    <AuthContext.Provider value={{ user, users, setUsers, settings, setSettings, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
-}
+};
 
-export function useAuth() {
-  return useContext(AuthContext);
-}
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth должен использоваться внутри AuthProvider');
+  }
+  return context;
+};

@@ -1,53 +1,168 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './AuthContext';
 import Navbar from './components/Navbar';
+import Footer from './components/Footer';
 import Home from './pages/Home';
 import Excursions from './pages/Excursions';
-import ExcursionDetail from './pages/ExcursionDetail'; // Добавлен импорт
 import Attractions from './pages/Attractions';
-import AttractionDetail from './pages/AttractionDetail';
-import Promotions from './pages/Promotions';
-import Companies from './pages/Companies';
-import CompanyDetail from './pages/CompanyDetail'; // Добавлен импорт
-import Contacts from './pages/Contacts';
 import Login from './pages/Login';
-import Register from './pages/Register';
 import Profile from './pages/Profile';
-import Booking from './pages/Booking';
-import Settings from './pages/Settings';
-import AdminPanel from './pages/AdminPanel';
-import GuidePanel from './pages/GuidePanel';
+import UserProfile from './pages/UserProfile';
+import ExcursionDetail from './pages/ExcursionDetail';
+import AttractionDetail from './pages/AttractionDetail';
 import ManagerPanel from './pages/ManagerPanel';
-import './index.css';
-import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
+import ErrorBoundary from './components/ErrorBoundary';
+import Register from './pages/Register';
+import Notifications from './components/Notifications';
+import ProtectedRoute from './components/ProtectedRoute';
+import ExcursionBook from './pages/ExcursionBook';
+import ForGuides from './pages/ForGuides';
+import Organizations from './pages/Organizations';
+import OrganizationsList from './components/OrganizationsList';
+import AddExcursion from './components/AddExcursion';
+import EditExcursion from './components/EditExcursion';
+import AddAttraction from './components/AddAttraction';
+import EditAttraction from './components/EditAttraction';
+import AddOrganization from './components/AddOrganization';
+import EditOrganization from './components/EditOrganization';
+import AddUser from './components/AddUser';
+import EditUser from './components/EditUser';
 
 function App() {
   return (
     <AuthProvider>
-      <Router>
+      <div className="flex flex-col min-h-screen">
         <Navbar />
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/excursions" element={<Excursions />} />
-          <Route path="/excursion/:id" element={<ExcursionDetail />} />
-          <Route path="/attractions" element={<Attractions />} />
-          <Route path="/attractions/:id" element={<AttractionDetail />} />
-          <Route path="/promotions" element={<Promotions />} />
-          <Route path="/companies" element={<Companies />} />
-          <Route path="/company/:id" element={<CompanyDetail />} /> {/* Добавлен маршрут */}
-          <Route path="/contacts" element={<Contacts />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/profile/:id" element={<Profile />} />
-          <Route path="/booking" element={<Booking />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/admin" element={<AdminPanel />} />
-          <Route path="/guide" element={<GuidePanel />} />
-          <Route path="/manager" element={<ManagerPanel />} />
-        </Routes>
-      </Router>
+        <ErrorBoundary>
+          <main className="flex-grow">
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/excursions" element={<Excursions />} />
+              <Route path="/attractions" element={<Attractions />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute allowedRoles={['user', 'admin', 'manager']}>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/user/:id"
+                element={
+                  <ProtectedRoute allowedRoles={['user', 'admin', 'manager']}>
+                    <UserProfile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/excursion/:id" element={<ExcursionDetail />} />
+              <Route path="/attractions/:id" element={<AttractionDetail />} />
+              <Route
+                path="/manager"
+                element={
+                  <ProtectedRoute allowedRoles={['manager']}>
+                    <ManagerPanel />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/organizations"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <Organizations />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/organizations-list"
+                element={
+                  <ProtectedRoute allowedRoles={['manager']}>
+                    <OrganizationsList />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/notifications"
+                element={
+                  <ProtectedRoute allowedRoles={['user', 'admin', 'manager']}>
+                    <Notifications />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/excursion/:id/book" element={<ExcursionBook />} />
+              <Route path="/for-guides" element={<ForGuides />} />
+              <Route
+                path="/admin/add-excursion"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <AddExcursion />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/edit-excursion/:id"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <EditExcursion />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/add-attraction"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <AddAttraction />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/edit-attraction/:id"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <EditAttraction />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/add-organization"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <AddOrganization />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/edit-organization/:id"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <EditOrganization />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/add-user"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <AddUser />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/edit-user/:id"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <EditUser />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </main>
+        </ErrorBoundary>
+        <Footer />
+      </div>
     </AuthProvider>
   );
 }

@@ -1,14 +1,10 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 
-function Navbar() {
+function Footer() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    console.log('Роль пользователя в Navbar:', user?.role || 'не авторизован');
-  }, [user]);
 
   const handleLogout = () => {
     logout();
@@ -16,12 +12,12 @@ function Navbar() {
   };
 
   return (
-    <nav className="navbar">
-      <div className="container mx-auto flex justify-between items-center">
-        <Link to="/" className="text-2xl font-bold">
+    <footer className="footer">
+      <div className="container mx-auto">
+        <Link to="/" className="text-xl font-bold">
           Главная
         </Link>
-        <div className="flex space-x-4">
+        <div className="mt-4">
           <Link to="/excursions" className="animate-fade-in">
             Экскурсии
           </Link>
@@ -66,8 +62,8 @@ function Navbar() {
           )}
         </div>
       </div>
-    </nav>
+    </footer>
   );
 }
 
-export default Navbar;
+export default Footer;

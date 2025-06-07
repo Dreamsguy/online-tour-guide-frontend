@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
-import VKAuth from 'react-vk-auth';
+import api from '../api/axios';
 
 function Login() {
   const [email, setEmail] = useState('');
@@ -13,82 +13,50 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await login(email, password);
+      const response = await api.post('/api/auth/login', { email, password });
+      const { token, user } = response.data;
+      login(token, user);
       navigate('/profile');
     } catch (err) {
-      setError('Неверные учетные данные');
-    }
-  };
-
-  const handleVKLogin = (response) => {
-    if (response.session) {
-      const { user } = response.session;
-      const email = user.email || `${user.id}@vk.com`;
-      const name = `${user.first_name} ${user.last_name}`;
-      try {
-        login(email, 'vk-auth', name);
-        navigate('/profile');
-      } catch (err) {
-        setError('Ошибка входа через VK');
-      }
-    } else {
-      setError('Ошибка входа через VK');
+      setError(err.response?.data?.message || 'Ошибка входа');
     }
   };
 
   return (
-    <div className="min-h-screen pt-20 flex items-center justify-center">
-      <div className="card p-8 w-full max-w-md">
-        <h1 className="text-5xl font-bold text-center mb-6">Вход</h1>
-        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-base font-semibold mb-2">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-4 rounded-lg text-base"
-              placeholder="Введите ваш email"
-              required
-            />
-          </div>
-          <div className="mb-6">
-            <label className="block text-base font-semibold mb-2">Пароль</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-4 rounded-lg text-base"
-              placeholder="Введите ваш пароль"
-              required
-            />
-          </div>
-          <button
-            type="submit"
-            className="p-4 rounded-lg w-full text-base font-medium"
-          >
-            ВОЙТИ
-          </button>
-        </form>
-        <div className="mt-4 flex justify-center">
-          <VKAuth
-            apiId="YOUR_VK_APP_ID"
-            onAuth={handleVKLogin}
-            className="p-4 rounded-lg w-full text-base font-medium text-center"
-          >
-            Войти через VK
-          </VKAuth>
+    <div className="min-h-screen pt-24 bg-gray-900 text-gray-200">
+      <div className="container mx-auto px-4 py-12">
+        <h1 className="text-4xl font-bold text-center mb-8 text-yellow-400">Вход</h1>
+        <div className="max-w-md mx-auto bg-gray-800 rounded-lg shadow-xl p-6 border border-gray-700">
+          {error && <p className="text-red-500 mb-4">{error}</p>}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-yellow-200">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full p-3 rounded-lg border border-gray-300 text-gray-800"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-yellow-200">Пароль</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full p-3 rounded-lg border border-gray-300 text-gray-800"
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full bg-green-600 text-white p-3 rounded-lg hover:bg-green-700 transition"
+            >
+              Войти
+            </button>
+          </form>
         </div>
-        <p className="text-center text-base mt-4">
-          Нет аккаунта? <Link to="/register" className="text-primary hover:underline">Зарегистрироваться</Link>
-        </p>
-        <p className="text-center text-base mt-4">
-          Тестовые учетные данные:<br />
-          Админ: admin@belarusguide.by / admin123<br />
-          Гид: guide@belarusguide.by / guide123<br />
-          Менеджер: manager@belarusguide.by / manager123
-        </p>
       </div>
     </div>
   );

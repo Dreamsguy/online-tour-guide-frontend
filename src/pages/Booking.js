@@ -1,106 +1,80 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
+import api from '../api/axios';
 
 function Booking() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { state } = useLocation();
+  const location = useLocation();
+  const excursionId = location.state?.excursionId;
   const [excursion, setExcursion] = useState(null);
-  const [slots, setSlots] = useState(1);
-  const [paymentMethod, setPaymentMethod] = useState('card');
-  const [paymentStatus, setPaymentStatus] = useState('');
+  const [error, setError] = useState('');
+  const [bookings, setBookings] = useState([]); // Добавляем состояние
 
   useEffect(() => {
-    if (!state?.excursionId) {
-      navigate('/excursions');
-      return;
-    }
-    const exc = {
-      id: state.excursionId,
-      title: 'Тур по Минску',
-      price: 100,
-      maxPeople: 20,
-      freeSlots: 5,
-      schedule: '2025-05-15 10:00',
-    };
-    setExcursion(exc);
-  }, [state, navigate]);
-
-  const handleBook = () => {
     if (!user) {
       navigate('/login');
       return;
     }
-    if (slots > excursion.freeSlots) {
-      alert('Недостаточно свободных мест!');
+    if (!excursionId) {
+      setError('Экскурсия не выбрана');
       return;
     }
-    setPaymentStatus('processing');
-    setTimeout(() => {
-      setPaymentStatus('success');
-      const booking = {
-        id: Date.now(),
-        excursion: excursion.title,
-        date: excursion.schedule,
-        slots,
-        total: excursion.price * slots,
-        paymentMethod,
-        timestamp: new Date().toISOString(),
-      };
-      const bookings = JSON.parse(localStorage.getItem('bookings') || '[]');
-      localStorage.setItem('bookings', JSON.stringify([...bookings, booking]));
-      localStorage.setItem('bookingNotification', JSON.stringify({
-        id: Date.now(),
-        message: `Экскурсия "${excursion.title}" забронирована на ${excursion.schedule}`,
-      }));
-      setTimeout(() => navigate('/profile'), 2000);
-    }, 2000);
+
+    console.log('ExcursionId type:', typeof excursionId, 'Value:', excursionId);
+
+    api.get(`/api/excursions/${excursionId}`)
+      .then(res => setExcursion(res.data))
+      .catch(err => setError('Ошибка загрузки экскурсии: ' + err.message));
+  }, [user, excursionId, navigate]);
+
+  const handleBooking = () => {
+    if (!user.id || !excursionId) {
+      setError('Ошибка: Пользователь или экскурсия не определены');
+      return;
+    }
+    const bookingData = {
+      userId: Number(user.id),
+      excursionId: Number(excursionId),
+    };
+    console.log('Booking data:', bookingData);
+    api.post('/api/Bookings', bookingData)
+      .then(() => {
+        alert('Бронирование успешно!');
+        // Обновляем бронирования
+        api.get(`/api/bookings/user/${user.id}`)
+          .then(res => {
+            setBookings(res.data); // Обновляем локальное состояние
+            navigate('/profile', { state: { updatedBookings: res.data } }); // Передаём в профиль
+          })
+          .catch(err => setError('Ошибка обновления бронирований: ' + err.message));
+      })
+      .catch(err => {
+        console.error('Полная ошибка бронирования:', err.response?.data);
+        setError('Ошибка бронирования: ' + (err.response?.data?.title || err.message));
+      });
   };
 
-  if (!excursion) return <div>Загрузка...</div>;
+  if (!user || !excursionId) return null;
 
   return (
-    <div className="min-h-screen bg-gray-100 font-sans pt-20 flex items-center justify-center">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h1 className="text-4xl font-bold text-center mb-6">Бронирование экскурсии - Беларусь</h1>
-        <div className="text-center mb-6">
-          <h2 className="text-xl font-semibold">{excursion.title}</h2>
-          <p className="text-gray-500 text-sm">Цена: €{excursion.price}</p>
-          <p className="text-gray-500 text-sm">Расписание: {excursion.schedule}</p>
-          <p className="text-gray-500 text-sm">Свободные места: {excursion.freeSlots}</p>
-        </div>
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-semibold mb-2">Количество мест</label>
-          <input
-            type="number"
-            value={slots}
-            onChange={(e) => setSlots(Math.min(e.target.value, excursion.freeSlots))}
-            className="w-full p-2 border rounded text-sm"
-            min="1"
-            max={excursion.freeSlots}
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-semibold mb-2">Способ оплаты</label>
-          <select
-            value={paymentMethod}
-            onChange={(e) => setPaymentMethod(e.target.value)}
-            className="w-full p-2 border rounded text-sm"
-          >
-            <option value="card">Банковская карта</option>
-            <option value="paypal">PayPal</option>
-          </select>
-        </div>
-        {paymentStatus === 'processing' && <p className="text-yellow-500 text-center">Обработка платежа...</p>}
-        {paymentStatus === 'success' && <p className="text-green-500 text-center">Платеж успешно выполнен!</p>}
-        <button
-          className="bg-black text-white w-full p-2 rounded hover:bg-gray-800 transition text-sm"
-          onClick={handleBook}
-          disabled={paymentStatus === 'processing'}
-        >
-          ОПЛАТИТЬ И ЗАБРОНИРОВАТЬ
-        </button>
+    <div className="min-h-screen pt-20">
+      <div className="container mx-auto py-12 px-4">
+        <h1 className="text-4xl font-bold text-center mb-8">Бронирование экскурсии</h1>
+        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+        {excursion && (
+          <div className="bg-white p-6 rounded-lg shadow-md max-w-2xl mx-auto">
+            <h2 className="text-2xl font-semibold mb-4">{excursion.title}</h2>
+            <p className="mb-2"><strong>Описание:</strong> {excursion.description}</p>
+            <p className="mb-2"><strong>Цена:</strong> €{excursion.price}</p>
+            <p className="mb-2"><strong>Расписание:</strong> {new Date(excursion.schedule).toLocaleString()}</p>
+            <p className="mb-2"><strong>Город:</strong> {excursion.city}</p>
+            <button onClick={handleBooking} className="mt-4 bg-green-500 text-white p-3 rounded-lg w-full">
+              Подтвердить бронирование
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
