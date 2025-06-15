@@ -10,15 +10,17 @@ function ProtectedRoute({ children, allowedRoles }) {
   }
 
   if (!user || !user.role) {
-    console.log('ProtectedRoute: Пользователь не авторизован, перенаправление на /login');
+    console.log('ProtectedRoute: Пользователь не авторизован или роль отсутствует, перенаправление на /login', { user });
     return <Navigate to="/login" replace />;
   }
 
-  if (!allowedRoles.includes(user.role.toLowerCase())) {
-    console.log(`ProtectedRoute: Роль ${user.role} не разрешена, перенаправление на /`);
+  const userRole = user.role.toLowerCase();
+  if (!allowedRoles.includes(userRole)) {
+    console.log(`ProtectedRoute: Роль ${userRole} не разрешена для маршрута, перенаправление на /`, { allowedRoles, user });
     return <Navigate to="/" replace />;
   }
 
+  console.log(`ProtectedRoute: Доступ разрешён для роли ${userRole}`, { allowedRoles, user });
   return children;
 }
 

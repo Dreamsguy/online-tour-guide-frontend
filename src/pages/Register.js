@@ -12,28 +12,25 @@ function Register() {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const handleSubmit = async (e) => {
+ const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Регистрируем пользователя с ролью user по умолчанию
-      const response = await api.post('/api/auth/register', { email, name, password });
-      if (response.data.message === 'Регистрация успешна') {
-        // После успешной регистрации автоматически логиним пользователя
-        const loginResponse = await api.post('/api/auth/login', { email, password });
-        const { token, user } = loginResponse.data;
-
-        // Сохраняем токен и данные пользователя через AuthContext
-        login(token, user);
-        setSuccessMessage('Регистрация успешна!');
-        setTimeout(() => navigate('/'), 2000); // Редирект на главную страницу
-      } else {
-        setError(response.data.message || 'Ошибка регистрации');
-      }
+        console.log('Sending registration:', { email, name, password }); // Отладка
+        const response = await api.post('/api/auth/register', { email, name, password });
+        if (response.data.message === 'Регистрация успешна') {
+            const loginResponse = await api.post('/api/auth/login', { email, password });
+            const { token, user } = loginResponse.data;
+            login(token, user);
+            setSuccessMessage('Регистрация успешна!');
+            setTimeout(() => navigate('/'), 2000);
+        } else {
+            setError(response.data.message || 'Ошибка регистрации');
+        }
     } catch (err) {
-      console.error('Ошибка регистрации:', err.response?.data || err.message);
-      setError(err.response?.data?.message || 'Ошибка сервера');
+        console.error('Registration error:', err.response?.data || err.message);
+        setError(err.response?.data?.message || 'Ошибка сервера');
     }
-  };
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-gray-200 flex items-center justify-center pt-24">

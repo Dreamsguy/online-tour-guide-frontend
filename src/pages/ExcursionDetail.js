@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom'; // Добавлен Link
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import L from 'leaflet';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
@@ -25,7 +25,48 @@ function ExcursionDetail() {
 
   useEffect(() => {
     api.get(`/api/excursions/${id}`)
-      .then(res => setExcursion(res.data))
+      .then(res => {
+        let data = res.data;
+        console.log('Сырые данные из API:', data);
+
+        // Адаптация координат из БД (lat, lng -> y, x)
+        if (data.attractions && Array.isArray(data.attractions)) {
+          data.attractions = data.attractions.map(attr => {
+            if (attr.coordinates && typeof attr.coordinates === 'object' && 'lat' in attr.coordinates) {
+              return { ...attr, coordinates: { y: attr.coordinates.lat, x: attr.coordinates.lng } };
+            }
+            return attr;
+          });
+        } else {
+          // Если attractions пустой, попробуем извлечь координаты из БД-формата
+          const coords = data.coordinates; // Предполагаем, что это строка JSON из БД
+          if (coords && typeof coords === 'string') {
+            try {
+              const parsedCoords = JSON.parse(coords.replace(/lat/g, '"y"').replace(/lng/g, '"x"'));
+              data.attractions = parsedCoords.map((c, i) => ({ coordinates: c, name: `Место ${i + 1}` }));
+            } catch (e) {
+              console.error('Ошибка парсинга координат:', e);
+            }
+          }
+        }
+
+        // Преобразование билетов
+        if (data.AvailableTicketsByDate && Array.isArray(data.AvailableTicketsByDate)) {
+          const ticketsByDate = {};
+          data.AvailableTicketsByDate.forEach(ticket => {
+            const date = ticket.Date;
+            if (!ticketsByDate[date]) ticketsByDate[date] = {};
+            ticketsByDate[date][ticket.Type] = {
+              Count: ticket.Total || 0,
+              Price: ticket.Price || 0,
+              Currency: ticket.Currency || 'BYN',
+            };
+          });
+          data.AvailableTicketsByDate = ticketsByDate;
+        }
+        console.log('Обработанные данные:', data);
+        setExcursion(data);
+      })
       .catch(err => setError('Ошибка загрузки: ' + err.message));
   }, [id]);
 
@@ -67,9 +108,10 @@ function ExcursionDetail() {
   };
 
   const hasAvailableTickets = () => {
-    if (!excursion?.availableTicketsByDate || Object.keys(excursion.availableTicketsByDate).length === 0) return false;
-    return Object.values(excursion.availableTicketsByDate).some(date =>
-      Object.values(date).some(tickets => tickets > 0)
+    if (!excursion?.AvailableTicketsByDate) return false;
+    if (!excursion.AvailableTicketsByDate || Object.keys(excursion.AvailableTicketsByDate).length === 0) return false;
+    return Object.values(excursion.AvailableTicketsByDate).some(date =>
+      Object.values(date).some(ticket => ticket.Count > 0)
     );
   };
 
@@ -86,20 +128,18 @@ function ExcursionDetail() {
     <div className="min-h-screen pt-24 bg-gray-900 text-gray-200">
       <div className="container mx-auto px-4 py-12 flex justify-center">
         <div className="w-full max-w-4xl bg-gray-800 rounded-lg shadow-xl p-8 border border-gray-700">
-          <h1 className="text-4xl font-bold text-center mb-6 text-yellow-400">{excursion.title}</h1>
+          <h1 className="text-4xl font-bold text-center mb-6 text-yellow-400">{excursion.title || excursion.Title || 'Без названия'}</h1>
           <img
-            src={excursion.image || 'https://picsum.photos/300/400'}
-            alt={excursion.title}
+            src={excursion.Images && excursion.Images.length > 0 ? `http://localhost:5248${excursion.Images[0]}` : 'https://picsum.photos/300/400'}
+            alt={excursion.title || excursion.Title}
             className="w-full h-80 object-cover rounded-lg mb-6"
-            onError={(e) => { e.target.src = 'https://picsum.photos/300/400'; }}
+            onError={(e) => { e.target.src = 'http://localhost:5248/default-image.jpg'; console.log('Ошибка загрузки фото:', e); }}
           />
           <div className="space-y-3 text-base">
-            <p><span className="font-semibold text-yellow-200">Описание:</span> <span className="text-gray-300">{excursion.description}</span></p>
-            <p><span className="font-semibold text-yellow-200">Цена:</span> <span className="text-gray-300">{excursion.price} BYN</span></p>
-            <p><span className="font-semibold text-yellow-200">Расписание:</span> <span className="text-gray-300">{new Date(excursion.schedule).toLocaleString()}</span></p>
-            <p><span className="font-semibold text-yellow-200">Город:</span> <span className="text-gray-300">{excursion.city}</span></p>
-            <p><span className="font-semibold text-yellow-200">Тип:</span> <span className="text-gray-300">{excursion.isIndividual ? 'Индивидуальная' : 'Групповая'}</span></p>
-            {excursion.isIndividual && excursion.guideId && (
+            <p><span className="font-semibold text-yellow-200">Описание:</span> <span className="text-gray-300">{excursion.description || excursion.Description || 'Нет описания'}</span></p>
+            <p><span className="font-semibold text-yellow-200">Город:</span> <span className="text-gray-300">{excursion.city || excursion.City || 'Не указан'}</span></p>
+            <p><span className="font-semibold text-yellow-200">Тип:</span> <span className="text-gray-300">{excursion.isIndividual || excursion.IsIndividual ? 'Индивидуальная' : 'Групповая'}</span></p>
+            {excursion.guideId && (excursion.isIndividual || excursion.IsIndividual) && (
               <p>
                 <span className="font-semibold text-yellow-200">Гид:</span>{' '}
                 <Link to={`/profile/${excursion.guideId}`} className="text-blue-400 hover:underline">
@@ -107,17 +147,27 @@ function ExcursionDetail() {
                 </Link>
               </p>
             )}
-            {excursion.availableTicketsByDate && Object.keys(excursion.availableTicketsByDate).length > 0 ? (
+            {excursion.attractions && excursion.attractions.length > 0 && (
+              <div>
+                <p className="font-semibold text-yellow-200">Достопримечательности:</p>
+                <ul className="list-disc pl-5 text-gray-300">
+                  {excursion.attractions.map((attr, index) => (
+                    <li key={index}>{attr.name || attr.Name || `Место ${index + 1}`}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {excursion.AvailableTicketsByDate && Object.keys(excursion.AvailableTicketsByDate).length > 0 ? (
               <div>
                 <p className="font-semibold text-yellow-200">Доступные билеты по датам:</p>
                 <ul className="list-disc pl-5 text-gray-300">
-                  {Object.entries(excursion.availableTicketsByDate).map(([date, categories]) => (
+                  {Object.entries(excursion.AvailableTicketsByDate).map(([date, categories]) => (
                     <li key={date}>
                       {new Date(date).toLocaleString()}: 
                       <ul className="list-disc pl-5">
-                        {Object.entries(categories).map(([category, count]) => (
-                          <li key={category}>
-                            {category}: {count > 0 ? `${count} мест` : 'Мест нет'}
+                        {Object.entries(categories).map(([type, ticket]) => (
+                          <li key={type}>
+                            {type}: {ticket.Count > 0 ? `${ticket.Count} мест` : 'Мест нет'} (Цена: ${ticket.Price} {ticket.Currency})
                           </li>
                         ))}
                       </ul>
@@ -134,12 +184,15 @@ function ExcursionDetail() {
             <MapContainer center={mapCenter} zoom={10} style={{ height: '400px', width: '100%', borderRadius: '8px', boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }} ref={mapRef}>
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' />
               {excursion.attractions
-                ?.filter(a => a.coordinates && !isNaN(a.coordinates.y) && !isNaN(a.coordinates.x))
+                ?.filter(a => a.coordinates && a.coordinates.y && a.coordinates.x && !isNaN(a.coordinates.y) && !isNaN(a.coordinates.x))
                 .map((a, i) => (
                   <Marker key={i} position={[a.coordinates.y, a.coordinates.x]}>
-                    <Popup>{a.name}</Popup>
+                    <Popup>{a.name || `Место ${i + 1}`}</Popup>
                   </Marker>
                 ))}
+              {excursion.attractions?.length > 1 && (
+                <></> // Плейсхолдер для совместимости с Routing.control
+              )}
             </MapContainer>
           </div>
           {hasAvailableTickets() ? (

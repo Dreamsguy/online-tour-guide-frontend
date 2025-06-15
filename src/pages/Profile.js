@@ -120,14 +120,9 @@ function Profile() {
     };
 
     loadProfile();
-    if (user.role !== 'admin') {
-      loadUserBookings();
-      if (user.role.includes('guide')) {
-        loadGuideData();
-      }
-    } else {
-      loadAdminData();
-    }
+    loadUserBookings();
+    if (user.role.includes('guide')) loadGuideData();
+    if (user.role === 'admin') loadAdminData();
   }, [user, navigate]);
 
   const handleLogout = () => {
@@ -245,49 +240,49 @@ function Profile() {
   const handleAddExcursion = () => navigate('/admin/add-excursion');
   const handleEditExcursion = (excursionId) => navigate(`/admin/edit-excursion/${excursionId}`);
   const handleDeleteExcursion = async (excursionId) => {
-  try {
-    await api.delete(`/api/admin/excursions/${excursionId}`);
-    setAllExcursions(allExcursions.filter(e => e.id !== excursionId));
-    alert('Экскурсия удалена.');
-  } catch (err) {
-    setError('Ошибка удаления экскурсии: ' + (err.response?.data?.message || err.message));
-  }
-};
+    try {
+      await api.delete(`/api/admin/excursions/${excursionId}`);
+      setAllExcursions(allExcursions.filter(e => e.id !== excursionId));
+      alert('Экскурсия удалена.');
+    } catch (err) {
+      setError('Ошибка удаления экскурсии: ' + (err.response?.data?.message || err.message));
+    }
+  };
   const handleAddAttraction = () => navigate('/admin/add-attraction');
   const handleEditAttraction = (attractionId) => navigate(`/admin/edit-attraction/${attractionId}`);
   const handleDeleteAttraction = async (attractionId) => {
-  try {
-    await api.delete(`/api/admin/attractions/${attractionId}`);
-    setAttractions(attractions.filter(a => a.id !== attractionId));
-    alert('Достопримечательность удалена.');
-  } catch (err) {
-    setError('Ошибка удаления достопримечательности: ' + (err.response?.data?.message || err.message));
-  }
-};
+    try {
+      await api.delete(`/api/admin/attractions/${attractionId}`);
+      setAttractions(attractions.filter(a => a.id !== attractionId));
+      alert('Достопримечательность удалена.');
+    } catch (err) {
+      setError('Ошибка удаления достопримечательности: ' + (err.response?.data?.message || err.message));
+    }
+  };
 
   const handleAddOrganization = () => navigate('/admin/add-organization');
   const handleEditOrganization = (organizationId) => navigate(`/admin/edit-organization/${organizationId}`);
   const handleDeleteOrganization = async (organizationId) => {
-  try {
-    await api.delete(`/api/admin/organizations/${organizationId}`);
-    setOrganizations(organizations.filter(o => o.id !== organizationId));
-    alert('Организация удалена.');
-  } catch (err) {
-    setError('Ошибка удаления организации: ' + (err.response?.data?.message || err.message));
-  }
-};
+    try {
+      await api.delete(`/api/admin/organizations/${organizationId}`);
+      setOrganizations(organizations.filter(o => o.id !== organizationId));
+      alert('Организация удалена.');
+    } catch (err) {
+      setError('Ошибка удаления организации: ' + (err.response?.data?.message || err.message));
+    }
+  };
 
   const handleAddUser = () => navigate('/admin/add-user');
   const handleEditUser = (userId) => navigate(`/admin/edit-user/${userId}`);
- const handleDeleteUser = async (userId) => {
-  try {
-    await api.delete(`/api/admin/users/${userId}`);
-    setUsers(users.filter(u => u.id !== userId));
-    alert('Пользователь удален.');
-  } catch (err) {
-    setError('Ошибка удаления пользователя: ' + (err.response?.data?.message || err.message));
-  }
-};
+  const handleDeleteUser = async (userId) => {
+    try {
+      await api.delete(`/api/admin/users/${userId}`);
+      setUsers(users.filter(u => u.id !== userId));
+      alert('Пользователь удален.');
+    } catch (err) {
+      setError('Ошибка удаления пользователя: ' + (err.response?.data?.message || err.message));
+    }
+  };
 
   const handleFilterChange = (section, field, value) => {
     setFilters(prev => ({

@@ -1,14 +1,13 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './AuthContext';
-import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
 import Excursions from './pages/Excursions';
 import Attractions from './pages/Attractions';
 import Login from './pages/Login';
 import Profile from './pages/Profile';
-import UserProfile from './pages/UserProfile';
+import UserProfile from './components/UserProfile';
 import ExcursionDetail from './pages/ExcursionDetail';
 import AttractionDetail from './pages/AttractionDetail';
 import ManagerPanel from './pages/ManagerPanel';
@@ -22,18 +21,16 @@ import Organizations from './pages/Organizations';
 import OrganizationsList from './components/OrganizationsList';
 import AddExcursion from './components/AddExcursion';
 import EditExcursion from './components/EditExcursion';
-import AddAttraction from './components/AddAttraction';
-import EditAttraction from './components/EditAttraction';
 import AddOrganization from './components/AddOrganization';
 import EditOrganization from './components/EditOrganization';
 import AddUser from './components/AddUser';
 import EditUser from './components/EditUser';
+import UserProfileEdit from './components/UserProfileEdit'; // Новый компонент
 
 function App() {
   return (
     <AuthProvider>
       <div className="flex flex-col min-h-screen">
-        <Navbar />
         <ErrorBoundary>
           <main className="flex-grow">
             <Routes>
@@ -55,6 +52,14 @@ function App() {
                 element={
                   <ProtectedRoute allowedRoles={['user', 'admin', 'manager']}>
                     <UserProfile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/user/:id/edit"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <UserProfileEdit />
                   </ProtectedRoute>
                 }
               />
@@ -107,22 +112,6 @@ function App() {
                 element={
                   <ProtectedRoute allowedRoles={['admin']}>
                     <EditExcursion />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/add-attraction"
-                element={
-                  <ProtectedRoute allowedRoles={['admin']}>
-                    <AddAttraction />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/edit-attraction/:id"
-                element={
-                  <ProtectedRoute allowedRoles={['admin']}>
-                    <EditAttraction />
                   </ProtectedRoute>
                 }
               />
