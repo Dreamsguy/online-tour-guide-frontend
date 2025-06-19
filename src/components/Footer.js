@@ -62,6 +62,7 @@ function Footer() {
           )}
         </div>
       </div>
+       <p>© 2025 Все права защищены</p>
     </footer>
   );
 }

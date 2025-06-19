@@ -1,14 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useNavigate, Link, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import api from '../api/axios';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+import '../global.css';
 
 function Attractions() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [attractions, setAttractions] = useState([]);
   const [newAttraction, setNewAttraction] = useState({
     name: '',
@@ -22,11 +25,17 @@ function Attractions() {
   });
   const [editAttractionId, setEditAttractionId] = useState(null);
   const mapRef = useRef(null);
+  const [filters, setFilters] = useState({
+    city: searchParams.get('city') || '',
+    search: searchParams.get('search') || '',
+  });
 
   useEffect(() => {
     const fetchAttractions = async () => {
       try {
-        const response = await api.get('/api/Attractions/attractions');
+        const response = await api.get('/api/Attractions/attractions', {
+          params: { city: filters.city, search: filters.search },
+        });
         console.log('Полученные достопримечательности:', response.data);
         setAttractions(response.data);
       } catch (err) {
@@ -35,20 +44,21 @@ function Attractions() {
       }
     };
     fetchAttractions();
-
     return () => {
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
       }
     };
-  }, []);
+  }, [filters.city, filters.search]);
 
-  const [error, setError] = useState(null); // Добавляем состояние для ошибок
+  const [error, setError] = useState(null);
 
   const cityFilter = location.state?.cityFilter || '';
   const filteredAttractions = attractions.filter(attraction =>
-    cityFilter ? attraction.city === cityFilter : true
+    (cityFilter ? attraction.city === cityFilter : true) &&
+    (!filters.city || attraction.city === filters.city) &&
+    (!filters.search || attraction.name.toLowerCase().includes(filters.search.toLowerCase()))
   );
 
   const handleRecommendExcursions = (attractionId) => {
@@ -69,14 +79,7 @@ function Attractions() {
     }).then(res => {
       setAttractions([...attractions, res.data]);
       setNewAttraction({
-        name: '',
-        image: '',
-        description: '',
-        coordinates: null,
-        history: '',
-        visitingHours: '',
-        city: '',
-        rating: null,
+        name: '', image: '', description: '', coordinates: null, history: '', visitingHours: '', city: '', rating: null,
       });
     }).catch(err => console.error('Ошибка добавления:', err));
   };
@@ -104,14 +107,7 @@ function Attractions() {
       setAttractions(attractions.map(attr => attr.id === editAttractionId ? res.data : attr));
       setEditAttractionId(null);
       setNewAttraction({
-        name: '',
-        image: '',
-        description: '',
-        coordinates: null,
-        history: '',
-        visitingHours: '',
-        city: '',
-        rating: null,
+        name: '', image: '', description: '', coordinates: null, history: '', visitingHours: '', city: '', rating: null,
       });
     }).catch(err => console.error('Ошибка обновления:', err));
   };
@@ -122,13 +118,155 @@ function Attractions() {
     }).catch(err => console.error('Ошибка удаления:', err));
   };
 
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    const newFilters = { ...filters, [name]: value };
+    setFilters(newFilters);
+    setSearchParams(newFilters);
+  };
+
+  const handleAttractionDetail = (id) => {
+    navigate(`/attractions/${id}`);
+  };
+
+  const customIcon = L.icon({
+    iconUrl: '/marker-icon.webp', // Убедись, что иконка доступна
+    iconSize: [40, 60],
+    iconAnchor: [20, 60],
+    popupAnchor: [0, -60],
+  });
+
   return (
-    <div className="min-h-screen pt-20">
-      <div className="container mx-auto py-12 px-4">
-        <h1 className="text-5xl font-bold text-center mb-12">Достопримечательности</h1>
-        {error && <div className="text-red-500 text-center mb-4">{error}</div>}
+    <div className="relative min-h-screen" style={{ backgroundImage: "url('/Города Беларуси.jpg')", backgroundSize: 'cover', backgroundPosition: 'center' }}>
+      <div className="bg-black bg-opacity-40 absolute inset-0"></div>
+      <div className="container mx-auto py-6 relative z-10">
+        <div className="navbar">
+          <div className="flex justify-center w-full">
+            <Link to="/" className="text-2xl text-gray-800 hover:text-yellow-600 font-forum mx-4">Главная</Link>
+            <Link to="/excursions" className="text-2xl text-gray-800 hover:text-yellow-600 font-forum mx-4">Экскурсии</Link>
+            <Link to="/attractions" className="text-2xl text-gray-800 hover:text-yellow-600 font-forum mx-4">Достопримечательности</Link>
+          </div>
+          {user && (
+            <div className="ml-auto flex items-center space-x-4">
+              <Link to="/profile" className="profile-button-custom">Профиль</Link>
+              <button onClick={() => navigate('/login')} className="text-2xl text-red-500 hover:text-orange-500 font-forum">Выйти</button>
+            </div>
+          )}
+        </div>
+        <div className="flex justify-end space-x-4 mt-2">
+          {!user && (
+            <>
+              <Link to="/register" className="text-xl text-white hover:text-yellow-600 font-forum bg-blue-200 bg-opacity-50 px-4 py-2 rounded-lg border-2 border-white">Регистрация</Link>
+              <Link to="/login" className="text-xl text-gray-600 hover:text-yellow-600 font-forum bg-blue-200 bg-opacity-50 px-4 py-2 rounded-lg border-2 border-white">Вход</Link>
+            </>
+          )}
+        </div>
+      </div>
+      <div className="container mx-auto py-12 px-4 relative z-10">
+        <h2 className="text-center mb-8 custom-title">
+          <span style={{ display: 'block' }}>Доступные</span>
+          <span style={{ display: 'block' }}>достопримечательности</span>
+          <span className="diamond-outer" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotate(45deg)', width: '150px', height: '150px', border: '2px solid #FFFFFF', opacity: '0.5', zIndex: -1 }}></span>
+          <span className="diamond-inner" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotate(45deg)', width: '120px', height: '120px', border: '2px solid #FFFFFF', opacity: '0.5', zIndex: -1 }}></span>
+        </h2>
+        <div className="filter-bar mb-6">
+          <select
+            name="city"
+            value={filters.city}
+            onChange={handleFilterChange}
+            className="p-2 rounded-lg bg-transparent text-white border-0 border-b-2 border-yellow-400 focus:outline-none focus:border-white transition duration-300 mr-4"
+          >
+            <option value="">Все города</option>
+            {[...new Set(attractions.map(attr => attr.city))].filter(Boolean).map((city, index) => (
+              <option key={index} value={city} className="bg-gray-800">{city}</option>
+            ))}
+          </select>
+          <input
+            type="text"
+            name="search"
+            value={filters.search}
+            onChange={handleFilterChange}
+            placeholder="Поиск достопримечательностей..."
+            className="p-2 rounded-lg bg-transparent text-white border-0 border-b-2 border-yellow-400 focus:outline-none focus:border-white transition duration-300"
+          />
+        </div>
+        <div className="mb-12 relative z-10">
+          <h3 className="text-3xl font-semibold mb-6 text-center text-white">Карта достопримечательностей</h3>
+          <div className="w-full" style={{ height: '600px' }}> {/* Отдельный контейнер для карты */}
+            <MapContainer
+              center={[53.4513, 26.4730]}
+              zoom={8}
+              style={{ height: '100%', width: '100%', borderRadius: '16px' }}
+              ref={mapRef}
+            >
+              <TileLayer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              />
+              {filteredAttractions.map(attraction => {
+                const coords = attraction.coordinates
+                  ? [attraction.coordinates.y, attraction.coordinates.x]
+                  : null;
+                if (!coords || !Array.isArray(coords) || coords.some(coord => typeof coord !== 'number' || isNaN(coord)) ||
+                    coords[0] < -90 || coords[0] > 90 || coords[1] < -180 || coords[1] > 180) {
+                  console.warn(`Некорректные координаты для ${attraction.name}:`, coords);
+                  return null;
+                }
+                return (
+                  <Marker key={attraction.id} position={coords} icon={customIcon}>
+                    <Popup className="custom-popup">
+                      <div>
+                        <h4 className="text-lg font-bold cursor-pointer" onClick={() => handleAttractionDetail(attraction.id)}>{attraction.name}</h4>
+                        <p className="text-sm text-gray-600">Город: {attraction.city}</p>
+                      </div>
+                    </Popup>
+                  </Marker>
+                );
+              })}
+            </MapContainer>
+          </div>
+        </div>
+        <div className="excursion-list">
+          {filteredAttractions.map(attraction => (
+            <div
+              key={attraction.id}
+              className="card"
+              onClick={() => handleAttractionDetail(attraction.id)}
+            >
+              <div className="card-overlay" style={{ backgroundImage: `url(${attraction.image || '/default.jpg'})` }}>
+                <span className="card-title">{attraction.name || 'Без названия'}</span>
+                <span className="card-text">Город: {attraction.city || 'Без города'}</span>
+                <div className="mt-4 flex justify-end space-x-2">
+                  {user?.role === 'admin' ? (
+                    <>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleEditAttraction(attraction); }}
+                        className="btn-primary p-2 rounded-lg text-sm font-medium"
+                      >
+                        Редактировать
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDeleteAttraction(attraction.id); }}
+                        className="btn-secondary p-2 rounded-lg text-sm font-medium"
+                      >
+                        Удалить
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleRecommendExcursions(attraction.id); }}
+                      className="btn-green p-2 rounded-lg text-sm font-medium"
+                    >
+                      Подобрать экскурсию
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
         {user?.role === 'admin' && (
-          <div className="card p-8 max-w-lg mx-auto mb-12">
+          <div className="card p-8 max-w-lg mx-auto mt-12">
             <h2 className="text-3xl font-semibold mb-6">{editAttractionId ? 'Редактировать достопримечательность' : 'Добавить достопримечательность'}</h2>
             <input
               type="text"
@@ -164,14 +302,12 @@ function Attractions() {
                 step="any"
                 placeholder="Широта"
                 value={newAttraction.coordinates ? newAttraction.coordinates[0] : ''}
-                onChange={(e) =>
-                  setNewAttraction({
-                    ...newAttraction,
-                    coordinates: newAttraction.coordinates
-                      ? [parseFloat(e.target.value), newAttraction.coordinates[1]]
-                      : [parseFloat(e.target.value), 0],
-                  })
-                }
+                onChange={(e) => setNewAttraction({
+                  ...newAttraction,
+                  coordinates: newAttraction.coordinates
+                    ? [parseFloat(e.target.value), newAttraction.coordinates[1]]
+                    : [parseFloat(e.target.value), 0],
+                })}
                 className="w-full p-4 rounded-lg text-base"
               />
               <input
@@ -179,14 +315,12 @@ function Attractions() {
                 step="any"
                 placeholder="Долгота"
                 value={newAttraction.coordinates ? newAttraction.coordinates[1] : ''}
-                onChange={(e) =>
-                  setNewAttraction({
-                    ...newAttraction,
-                    coordinates: newAttraction.coordinates
-                      ? [newAttraction.coordinates[0], parseFloat(e.target.value)]
-                      : [0, parseFloat(e.target.value)],
-                  })
-                }
+                onChange={(e) => setNewAttraction({
+                  ...newAttraction,
+                  coordinates: newAttraction.coordinates
+                    ? [newAttraction.coordinates[0], parseFloat(e.target.value)]
+                    : [0, parseFloat(e.target.value)],
+                })}
                 className="w-full p-4 rounded-lg text-base"
               />
             </div>
@@ -212,82 +346,6 @@ function Attractions() {
             </button>
           </div>
         )}
-        <div className="mb-12 relative z-10">
-          <h3 className="text-3xl font-semibold mb-6">Карта</h3>
-          <MapContainer
-            center={[53.4513, 26.4730]}
-            zoom={8}
-            style={{ height: '500px', width: '100%', borderRadius: '16px', boxShadow: '0 6px 20px rgba(0, 0, 0, 0.15)' }}
-            ref={mapRef}
-          >
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            />
-            {filteredAttractions.map(attraction => {
-              const coords = attraction.coordinates
-                ? [attraction.coordinates.y, attraction.coordinates.x]
-                : null;
-              if (
-                !coords ||
-                !Array.isArray(coords) ||
-                coords.some(coord => typeof coord !== 'number' || isNaN(coord)) ||
-                coords[0] < -90 || coords[0] > 90 ||
-                coords[1] < -180 || coords[1] > 180
-              ) {
-                console.warn(`Некорректные координаты у достопримечательности ${attraction.name}:`, attraction.coordinates);
-                return null;
-              }
-              return (
-                <Marker key={attraction.id} position={coords}>
-                  <Popup>{attraction.name} <br /> {attraction.description}</Popup>
-                </Marker>
-              );
-            })}
-          </MapContainer>
-        </div>
-        <div className="flex flex-wrap justify-center gap-8">
-          {filteredAttractions.map(attraction => (
-            <div key={attraction.id} className="card p-4 shadow-md hover:shadow-lg transition">
-              <img src={attraction.image} alt={attraction.name} className="w-full h-[250px] object-cover rounded-lg mb-4" />
-              <div className="card-content">
-                <h3 className="text-2xl font-semibold mb-2">{attraction.name}</h3>
-                <p className="text-base mb-1">Город: {attraction.city}</p>
-                <p className="text-base mb-2">Рейтинг: {attraction.rating || 'Нет рейтинга'}</p>
-                {user?.role === 'admin' ? (
-                  <div className="flex space-x-3 mt-4">
-                    <button
-                      onClick={() => handleEditAttraction(attraction)}
-                      className="p-3 rounded-lg w-full text-base font-medium bg-blue-500 text-white hover:bg-blue-600"
-                    >
-                      РЕДАКТИРОВАТЬ
-                    </button>
-                    <button
-                      onClick={() => handleDeleteAttraction(attraction.id)}
-                      className="bg-[#C8102E] text-[#FFD700] p-3 rounded-lg w-full text-base font-medium hover:bg-red-700"
-                    >
-                      УДАЛИТЬ
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex space-x-3 mt-4">
-                    <Link to={`/attractions/${attraction.id}`}>
-                      <button className="p-3 rounded-lg w-full text-base font-medium bg-blue-500 text-white hover:bg-blue-600">
-                        ПОДРОБНЕЕ
-                      </button>
-                    </Link>
-                    <button
-                      onClick={() => handleRecommendExcursions(attraction.id)}
-                      className="p-3 rounded-lg w-full text-base font-medium bg-green-500 text-white hover:bg-green-600"
-                    >
-                      ПОДОБРАТЬ ЭКСКУРСИЮ
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );

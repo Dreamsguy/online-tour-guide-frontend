@@ -25,7 +25,9 @@ import AddOrganization from './components/AddOrganization';
 import EditOrganization from './components/EditOrganization';
 import AddUser from './components/AddUser';
 import EditUser from './components/EditUser';
-import UserProfileEdit from './components/UserProfileEdit'; // Новый компонент
+import UserProfileEdit from './components/UserProfileEdit';
+import ForgotPassword from './components/ForgotPassword';
+import ResetPassword from './components/ResetPassword';
 
 function App() {
   return (
@@ -147,6 +149,8 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
             </Routes>
           </main>
         </ErrorBoundary>

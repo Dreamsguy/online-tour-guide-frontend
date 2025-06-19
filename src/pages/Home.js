@@ -15,8 +15,6 @@ function Home() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
-  console.log('User:', user);
-
   const [searchQuery, setSearchQuery] = useState('');
   const [showPopup, setShowPopup] = useState(false);
   const [preferences, setPreferences] = useState({
@@ -81,6 +79,13 @@ function Home() {
     };
     fetchData();
   }, [user?.id]);
+
+  const calculateCityRating = (cityName) => {
+    const cityExcursions = allExcursions.filter(exc => exc.city === cityName);
+    if (cityExcursions.length === 0) return 0;
+    const totalRating = cityExcursions.reduce((sum, exc) => sum + (exc.rating || 0), 0);
+    return (totalRating / cityExcursions.length).toFixed(1);
+  };
 
   const handleBookExcursion = (excursionId) => {
     if (!user) {
@@ -165,9 +170,18 @@ function Home() {
   if (loading) return <div className="text-center text-yellow-400 mt-20">Загрузка...</div>;
   if (error) return <div className="text-center text-red-500 mt-20">Ошибка: {error}. Проверь консоль для деталей.</div>;
 
+  const topCities = [...new Set(allExcursions.map(exc => exc.city))]
+    .filter(city => city && city !== 'Хатынь')
+    .map(city => ({
+      name: city,
+      rating: calculateCityRating(city),
+    }))
+    .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+    .slice(0, 5);
+
   return (
     <div>
-      <div className="relative h-screen bg-cover bg-center" style={{ backgroundImage: "url('/D6MugJFGWwZUuLQm.jpg')" }}>
+      <div className="relative h-screen bg-cover bg-center" style={{ backgroundImage: "url('/Города Беларуси.jpg')", backgroundSize: 'cover', minHeight: '110vh' }}>
         <div className="bg-black bg-opacity-40"></div>
         <div className="container mx-auto py-6">
           <div className="navbar">
@@ -178,7 +192,7 @@ function Home() {
             </div>
             {user && (
               <div className="ml-auto flex items-center space-x-4">
-                <Link to="/profile" className="profile-button-custom" data-diamond-top data-square1 data-square2 data-diamond-bottom data-square3 data-square4>
+                <Link to="/profile" className="profile-button-custom">
                   Профиль
                 </Link>
                 <button onClick={handleLogout} className="text-2xl text-red-500 hover:text-orange-500 font-forum">Выйти</button>
@@ -189,7 +203,7 @@ function Home() {
             {!user && (
               <>
                 <Link to="/register" className="text-xl text-white hover:text-yellow-600 font-forum bg-blue-200 bg-opacity-50 px-4 py-2 rounded-lg border-2 border-white">Регистрация</Link>
-                <Link to="/login" className="text-xl text-white hover:text-yellow-600 font-forum bg-blue-200 bg-opacity-50 px-4 py-2 rounded-lg border-2 border-white">Вход</Link>
+                <Link to="/login" className="text-xl text-gray-600 hover:text-yellow-600 font-forum bg-blue-200 bg-opacity-50 px-4 py-2 rounded-lg border-2 border-white">Вход</Link>
               </>
             )}
           </div>
@@ -274,7 +288,7 @@ function Home() {
                   </button>
                   <button
                     onClick={handlePopupToggle}
-                    className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+                    className="bg-red-700 text-white px-4 py-2 rounded-lg hover:bg-red-800"
                   >
                     Закрыть
                   </button>
@@ -285,150 +299,368 @@ function Home() {
         )}
       </div>
 
-      <div className="container mx-auto py-12 px-4 bg-white">
-        <div className="container mx-auto py-6 px-4">
-          <h2 className="text-2xl font-bold mb-4 text-black">Популярные города</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-            {cities.length > 0 ? (
-              cities
-                .sort((a, b) => (b.count || 0) - (a.count || 0))
-                .slice(0, 5)
-                .map((city) => (
-                  <button
-                    key={city.name || city}
-                    onClick={() => navigate(`/excursions?city=${city.name || city}`)}
-                    className="bg-gray-800 bg-opacity-70 p-3 rounded-lg border border-gray-700 hover:bg-gray-700 transition text-center text-white"
+      <div className="relative bg-light-beige">
+        <div className="container mx-auto py-12 px-4 relative bg-cover bg-center w-full" style={{ backgroundImage: "url('/Города Беларуси.jpg')", backgroundSize: 'cover', minWidth: '100vw' }}>
+          <h2 className="text-center mb-8 relative custom-title" style={{ color: '#000000 !important', position: 'relative', zIndex: 1 }}>
+            <span style={{ display: 'block' }}>Популярные</span>
+            <span style={{ display: 'block' }}>города</span>
+            <span className="diamond-outer" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotate(45deg)', width: '150px', height: '150px', border: '2px solid #FFFFFF', opacity: '0.5', zIndex: -1 }}></span>
+            <span className="diamond-inner" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotate(45deg)', width: '120px', height: '120px', border: '2px solid #FFFFFF', opacity: '0.5', zIndex: -1 }}></span>
+          </h2>
+          <div className="relative overflow-hidden">
+            <div className="flex space-x-6 pb-4 city-scroll" style={{ overflowX: 'auto', scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch', position: 'relative' }}>
+              {topCities.map((city, index) => {
+                let photoUrl = '/default.jpg';
+                switch (city.name) {
+                  case 'Брестская обл.':
+                    photoUrl = '/Брестская_область.jpg';
+                    break;
+                  case 'Минск':
+                    photoUrl = '/Минск.jfif';
+                    break;
+                  case 'Брест':
+                    photoUrl = '/Брест.webp';
+                    break;
+                  case 'Несвиж':
+                    photoUrl = '/Несвиж.jpeg';
+                    break;
+                  case 'Мир':
+                    photoUrl = '/Мирский_замок.jpg';
+                    break;
+                  default:
+                    photoUrl = '/default.jpg';
+                }
+
+                const rating = parseFloat(city.rating);
+                const filledDiamonds = Math.min(Math.floor(rating), 5);
+                const partialFill = (rating % 1) * 100;
+
+                return (
+                  <div
+                    key={index}
+                    className="min-w-[300px] h-[400px] bg-cover bg-center rounded-lg shadow-lg overflow-hidden transform transition-transform duration-300 hover:scale-105 city-card"
+                    style={{ backgroundImage: `url(${photoUrl})` }}
+                    onClick={() => navigate(`/excursions?city=${encodeURIComponent(city.name)}`)}
                   >
-                    {city.name || city} ({city.count || 0})
-                  </button>
-                ))
-            ) : (
-              <p className="text-gray-400">Нет данных о городах</p>
+                    <div className="relative w-full h-full bg-black bg-opacity-50 flex flex-col justify-end p-6 text-white">
+                      <div className="flex justify-between items-center">
+                        <span className="text-3xl font-forum font-semibold">{city.name}</span>
+                        <div className="flex flex-col items-end mt-6">
+                          <span className="text-xl text-white bg-black bg-opacity-75 px-2 py-1 rounded absolute -top-8 transform translate-x-1/2" style={{ right: '50%' }}>{rating}</span>
+                          <div className="flex flex-col items-end rating-diamonds" style={{ gap: 0, position: 'relative' }}>
+                            {Array.from({ length: 5 }, (_, i) => {
+                              const fillIndex = 4 - i;
+                              if (fillIndex >= filledDiamonds) {
+                                if (fillIndex === filledDiamonds && partialFill > 0) {
+                                  return (
+                                    <span
+                                      key={`partial-${i}`}
+                                      className="diamond-rating partial-diamond"
+                                      style={{ '--fill-percentage': `${partialFill}%` }}
+                                    ></span>
+                                  );
+                                }
+                                return <span key={`empty-${i}`} className="diamond-rating empty-diamond"></span>;
+                              } else {
+                                return <span key={`filled-${i}`} className="diamond-rating filled-diamond"></span>;
+                              }
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {/* Стрелки в краях контейнера */}
+            {topCities.length > 1 && (
+              <button
+                className="absolute top-1/2 transform -translate-y-1/2 bg-gray-700 bg-opacity-70 text-white p-2 z-10 hover:bg-gray-600 arrow-diamond left-arrow"
+                style={{ left: '0' }}
+                onClick={() => document.querySelector('.city-scroll').scrollLeft -= 300}
+              >
+                ←
+              </button>
+            )}
+            {topCities.length > 1 && (
+              <button
+                className="absolute top-1/2 transform -translate-y-1/2 bg-gray-700 bg-opacity-70 text-white p-2 z-10 hover:bg-gray-600 arrow-diamond right-arrow"
+                style={{ right: '0' }}
+                onClick={() => document.querySelector('.city-scroll').scrollLeft += 300}
+              >
+                →
+              </button>
             )}
           </div>
         </div>
 
-        <div className="container mx-auto py-12 px-4">
-          <h2 className="text-3xl font-bold text-center mb-6 text-black">Топ экскурсии</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {topExcursions.length > 0 ? (
-              topExcursions.slice(0, 5).map((excursion) => (
-                <div
-                  key={excursion.id}
-                  className="bg-gray-800 bg-opacity-80 rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow border border-gray-700"
-                  onClick={() => navigate(`/excursion/${excursion.id}`)}
-                >
-                  <div className="w-full h-48 bg-gray-500 flex items-center justify-center">
-                    {excursion.images && excursion.images.length > 0 && (
-                      <img
-                        src={`http://localhost:5248${excursion.images[0]}`}
-                        alt={excursion.title}
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                  </div>
-                  <div className="p-4">
-                    <h3 className="text-xl font-semibold mb-2 text-yellow-300">{excursion.title || 'Без названия'}</h3>
-                    <p className="text-sm mb-2 text-gray-300">Рейтинг: {excursion.rating || 0}</p>
-                    {excursion.availableTicketsByDate && Object.keys(excursion.availableTicketsByDate).length > 0 ? (
-                      <div className="mb-2">
-                        <p className="font-semibold text-yellow-200">Доступные билеты:</p>
-                        <ul className="list-disc pl-5 text-gray-300">
-                          {Object.entries(excursion.availableTicketsByDate).slice(0, 1).map(([dateKey]) => (
-                            <li key={dateKey}>{dateKey.split(' ')[0] || 'Дата не указана'}</li>
-                          ))}
-                        </ul>
+        <div className="container mx-auto py-12 px-4 relative bg-cover bg-center w-full" style={{ backgroundImage: "url('/Пляж.jpg')", backgroundSize: 'cover', minWidth: '100vw' }}>
+          <h2 className="text-center mb-8 relative custom-title" style={{ color: '#000000 !important', position: 'relative', zIndex: 1 }}>
+            <span style={{ display: 'block' }}>Топ</span>
+            <span style={{ display: 'block' }}>экскурсии</span>
+            <span className="diamond-outer" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotate(45deg)', width: '150px', height: '150px', border: '2px solid #FFFFFF', opacity: '0.5', zIndex: -1 }}></span>
+            <span className="diamond-inner" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotate(45deg)', width: '120px', height: '120px', border: '2px solid #FFFFFF', opacity: '0.5', zIndex: -1 }}></span>
+          </h2>
+          <div className="relative overflow-hidden">
+            <div className="flex space-x-6 pb-4 city-scroll" style={{ overflowX: 'auto', scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch', position: 'relative' }}>
+              {topExcursions.length > 0 ? (
+                topExcursions.slice(0, 5).map((excursion, index) => {
+                  let photoUrl = '/default.jpg';
+                  switch (excursion.title) {
+                    case 'Музей Минска':
+                      photoUrl = '/Минск.jfif';
+                      break;
+                    case 'Брестская крепость':
+                      photoUrl = '/Брестская_область.jpg';
+                      break;
+                    case 'Несвижский замок':
+                      photoUrl = '/Несвиж.jpeg';
+                      break;
+                    case 'Мирский замок':
+                      photoUrl = '/Мирский_замок.jpg';
+                      break;
+                    case 'Эко-туры':
+                      photoUrl = '/Могилев.jpg';
+                      break;
+                    default:
+                      photoUrl = '/default.jpg';
+                  }
+
+                  const rating = parseFloat(excursion.rating || 0);
+                  const filledDiamonds = Math.min(Math.floor(rating), 5);
+                  const partialFill = (rating % 1) * 100;
+
+                  return (
+                    <div
+                      key={index}
+                      className="min-w-[300px] h-[400px] bg-cover bg-center rounded-lg shadow-lg overflow-hidden transform transition-transform duration-300 hover:scale-105 city-card"
+                      style={{ backgroundImage: `url(${photoUrl})` }}
+                      onClick={() => navigate(`/excursion/${excursion.id}`)}
+                    >
+                      <div className="relative w-full h-full bg-black bg-opacity-50 flex flex-col justify-end p-6 text-white">
+                        <div className="flex justify-between items-center">
+                          <span className="text-3xl font-forum font-semibold">{excursion.title || 'Без названия'}</span>
+                          <div className="flex flex-col items-end mt-6">
+                            <span className="text-xl text-white bg-black bg-opacity-75 px-2 py-1 rounded absolute -top-8 transform translate-x-1/2" style={{ right: '50%' }}>{rating}</span>
+                            <div className="flex flex-col items-end rating-diamonds" style={{ gap: 0, position: 'relative' }}>
+                              {Array.from({ length: 5 }, (_, i) => {
+                                const fillIndex = 4 - i;
+                                if (fillIndex >= filledDiamonds) {
+                                  if (fillIndex === filledDiamonds && partialFill > 0) {
+                                    return (
+                                      <span
+                                        key={`partial-${i}`}
+                                        className="diamond-rating partial-diamond"
+                                        style={{ '--fill-percentage': `${partialFill}%` }}
+                                      ></span>
+                                    );
+                                  }
+                                  return <span key={`empty-${i}`} className="diamond-rating empty-diamond"></span>;
+                                } else {
+                                  return <span key={`filled-${i}`} className="diamond-rating filled-diamond"></span>;
+                                }
+                              })}
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    ) : (
-                      <p className="text-center text-red-500 font-medium">Мест нет</p>
-                    )}
-                    {user && user.role === 'user' && hasAvailableTickets(excursion) && (
-                      <button
-                        className="w-full bg-green-600 text-white p-2 rounded-lg font-medium hover:bg-green-700 transition"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleBookExcursion(excursion.id);
-                        }}
-                      >
-                        БРОНИРОВАТЬ
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-400">Нет данных о топ-экскурсиях</p>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="text-gray-400">Нет данных о топ-экскурсиях</p>
+              )}
+            </div>
+            {/* Стрелки в краях контейнера */}
+            {topExcursions.length > 1 && (
+              <button
+                className="absolute top-1/2 transform -translate-y-1/2 bg-gray-700 bg-opacity-70 text-white p-2 z-10 hover:bg-gray-600 arrow-diamond left-arrow"
+                style={{ left: '0' }}
+                onClick={() => document.querySelector('.city-scroll').scrollLeft -= 300}
+              >
+                ←
+              </button>
+            )}
+            {topExcursions.length > 1 && (
+              <button
+                className="absolute top-1/2 transform -translate-y-1/2 bg-gray-700 bg-opacity-70 text-white p-2 z-10 hover:bg-gray-600 arrow-diamond right-arrow"
+                style={{ right: '0' }}
+                onClick={() => document.querySelector('.city-scroll').scrollLeft += 300}
+              >
+                →
+              </button>
             )}
           </div>
         </div>
 
         {user && (
-          <div className="container mx-auto py-12 px-4">
-            <h2 className="text-3xl font-bold text-center mb-6 text-black">Рекомендации для вас</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {recommendations.length > 0 ? (
-                recommendations.map((excursion) => (
-                  <div
-                    key={excursion.id}
-                    className="bg-gray-800 bg-opacity-80 rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow border border-gray-700"
-                    onClick={() => navigate(`/excursion/${excursion.id}`)}
-                  >
-                    <img
-                      src={excursion.images && excursion.images.length > 0 ? `http://localhost:5248${excursion.images[0]}` : 'https://picsum.photos/300/400'}
-                      alt={excursion.title}
-                      className="w-full h-48 object-cover"
-                      onError={(e) => { e.target.src = 'https://picsum.photos/300/400'; }}
-                    />
-                    <div className="p-4">
-                      <h3 className="text-xl font-semibold mb-2 text-yellow-300">{excursion.title || 'Без названия'}</h3>
-                      <p className="text-sm mb-2 text-gray-300">Город: {excursion.city || 'Не указан'}</p>
-                      <p className="text-sm mb-2 text-gray-300">Направление: {excursion.category || 'Без направления'}</p>
-                      {excursion.availableTicketsByDate && Object.keys(excursion.availableTicketsByDate).length > 0 ? (
-                        <div className="mb-2">
-                          <p className="font-semibold text-yellow-200">Доступные билеты:</p>
-                          <ul className="list-disc pl-5 text-gray-300">
-                            {Object.entries(excursion.availableTicketsByDate).slice(0, 1).map(([dateKey]) => (
-                              <li key={dateKey}>{dateKey.split(' ')[0] || 'Дата не указана'}</li>
-                            ))}
-                          </ul>
+          <div className="container mx-auto py-12 px-4 relative bg-cover bg-center w-full" style={{ backgroundImage: "url('/Рекомендации.jpg')", backgroundSize: 'cover', minWidth: '100vw' }}>
+            <h2 className="text-center mb-8 relative custom-title" style={{ color: '#000000 !important', position: 'relative', zIndex: 1 }}>
+              <span style={{ display: 'block' }}>Рекомендации</span>
+              <span style={{ display: 'block' }}>для вас</span>
+              <span className="diamond-outer" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotate(45deg)', width: '150px', height: '150px', border: '2px solid #FFFFFF', opacity: '0.5', zIndex: -1 }}></span>
+              <span className="diamond-inner" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotate(45deg)', width: '120px', height: '120px', border: '2px solid #FFFFFF', opacity: '0.5', zIndex: -1 }}></span>
+            </h2>
+            <div className="relative overflow-hidden">
+              <div className="flex space-x-6 pb-4 city-scroll" style={{ overflowX: 'auto', scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch', position: 'relative' }}>
+                {recommendations.length > 0 ? (
+                  recommendations.map((excursion, index) => {
+                    let photoUrl = '/default.jpg';
+                    switch (excursion.city) {
+                      case 'Брестская обл.':
+                        photoUrl = '/Брестская_область.jpg';
+                        break;
+                      case 'Хатынь':
+                        photoUrl = '/Хатынь.jpg';
+                        break;
+                      case 'Минск':
+                        photoUrl = '/Минск.jfif';
+                        break;
+                      case 'Брест':
+                        photoUrl = '/Брест.webp';
+                        break;
+                      case 'Несвиж':
+                        photoUrl = '/Несвиж.jpeg';
+                        break;
+                      default:
+                        photoUrl = '/default.jpg';
+                    }
+
+                    const rating = parseFloat(excursion.rating || 0);
+                    const filledDiamonds = Math.min(Math.floor(rating), 5);
+                    const partialFill = (rating % 1) * 100;
+
+                    return (
+                      <div
+                        key={index}
+                        className="min-w-[300px] h-[400px] bg-cover bg-center rounded-lg shadow-lg overflow-hidden transform transition-transform duration-300 hover:scale-105 city-card"
+                        style={{ backgroundImage: `url(${photoUrl})` }}
+                        onClick={() => navigate(`/excursion/${excursion.id}`)}
+                      >
+                        <div className="relative w-full h-full bg-black bg-opacity-50 flex flex-col justify-end p-6 text-white">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <span className="text-3xl font-forum font-semibold block">{excursion.title || 'Без названия'}</span>
+                              <span className="text-lg font-forum block mt-2">{excursion.category || 'Без направления'}</span>
+                            </div>
+                            <div className="flex flex-col items-end mt-6">
+                              <span className="text-xl text-white bg-black bg-opacity-75 px-2 py-1 rounded absolute -top-8 transform translate-x-1/2" style={{ right: '50%' }}>{rating}</span>
+                              <div className="flex flex-col items-end rating-diamonds" style={{ gap: 0, position: 'relative' }}>
+                                {Array.from({ length: 5 }, (_, i) => {
+                                  const fillIndex = 4 - i;
+                                  if (fillIndex >= filledDiamonds) {
+                                    if (fillIndex === filledDiamonds && partialFill > 0) {
+                                      return (
+                                        <span
+                                          key={`partial-${i}`}
+                                          className="diamond-rating partial-diamond"
+                                          style={{ '--fill-percentage': `${partialFill}%` }}
+                                        ></span>
+                                      );
+                                    }
+                                    return <span key={`empty-${i}`} className="diamond-rating empty-diamond"></span>;
+                                  } else {
+                                    return <span key={`filled-${i}`} className="diamond-rating filled-diamond"></span>;
+                                  }
+                                })}
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      ) : (
-                        <p className="text-center text-red-500 font-medium">Мест нет</p>
-                      )}
-                      {user && user.role === 'user' && hasAvailableTickets(excursion) && (
-                        <button
-                          className="w-full bg-green-600 text-white p-2 rounded-lg font-medium hover:bg-green-700 transition"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleBookExcursion(excursion.id);
-                          }}
-                        >
-                          БРОНИРОВАТЬ
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-gray-400 text-center">Нет рекомендаций. Попробуйте посмотреть экскурсии!</p>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="text-gray-400 text-center">Нет рекомендаций. Попробуйте посмотреть экскурсии!</p>
+                )}
+              </div>
+              {/* Стрелки в краях контейнера */}
+              {recommendations.length > 1 && (
+                <button
+                  className="absolute top-1/2 transform -translate-y-1/2 bg-gray-700 bg-opacity-70 text-white p-2 z-10 hover:bg-gray-600 arrow-diamond left-arrow"
+                  style={{ left: '0' }}
+                  onClick={() => document.querySelector('.city-scroll').scrollLeft -= 300}
+                >
+                  ←
+                </button>
+              )}
+              {recommendations.length > 1 && (
+                <button
+                  className="absolute top-1/2 transform -translate-y-1/2 bg-gray-700 bg-opacity-70 text-white p-2 z-10 hover:bg-gray-600 arrow-diamond right-arrow"
+                  style={{ right: '0' }}
+                  onClick={() => document.querySelector('.city-scroll').scrollLeft += 300}
+                >
+                  →
+                </button>
               )}
             </div>
           </div>
         )}
 
-        <div className="container mx-auto py-12 px-4">
-          <h2 className="text-2xl font-bold mb-6 text-black">Отзывы пользователей</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="container mx-auto py-12 px-4 relative bg-cover bg-center w-full" style={{ backgroundImage: "url('/Отзывы.jpg')", backgroundSize: 'cover', minWidth: '100vw' }}>
+          <h2 className="text-center mb-8 relative custom-title" style={{ color: '#000000 !important', position: 'relative', zIndex: 1 }}>
+            <span style={{ display: 'block' }}>Отзывы</span>
+            <span style={{ display: 'block' }}>пользователей</span>
+            <span className="diamond-outer" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotate(45deg)', width: '150px', height: '150px', border: '2px solid #FFFFFF', opacity: '0.5', zIndex: -1 }}></span>
+            <span className="diamond-inner" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotate(45deg)', width: '120px', height: '120px', border: '2px solid #FFFFFF', opacity: '0.5', zIndex: -1 }}></span>
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {reviews.length > 0 ? (
-              reviews.map((review) => (
-                <div key={review.id} className="bg-gray-800 bg-opacity-80 p-4 rounded-lg border border-gray-700">
-                  <p className="text-gray-300">{review.text || 'Без текста'}</p>
-                  <p className="text-sm text-yellow-200 mt-2">Рейтинг: {review.rating || 0}/5</p>
-                  <p className="text-sm text-gray-400">— {review.userName || 'Аноним'}</p>
-                </div>
-              ))
+              reviews.map((review, index) => {
+                const rating = parseFloat(review.rating || 0);
+                const filledStars = Math.min(Math.floor(rating), 5);
+                const partialFill = (rating % 1) * 100;
+
+                return (
+                  <div
+                    key={index}
+                    className="relative bg-light-pink p-6 rounded-lg shadow-lg border border-gray-200 max-w-sm mx-auto"
+                    style={{
+                      minHeight: '300px',
+                      borderRadius: '20px',
+                      position: 'relative',
+                      paddingTop: '20px',
+                    }}
+                  >
+                    <p className="text-gray-700 text-lg mb-4 font-forum" style={{ minHeight: '120px' }}>
+                      {review.text || 'Без текста'}
+                    </p>
+                    <div className="flex justify-between items-center mt-4">
+                      <div>
+                        <div className="flex flex-col items-start rating-stars" style={{ gap: 0, position: 'relative' }}>
+                          {Array.from({ length: 5 }, (_, i) => {
+                            const fillIndex = 4 - i;
+                            if (fillIndex >= filledStars) {
+                              if (fillIndex === filledStars && partialFill > 0) {
+                                return (
+                                  <span
+                                    key={`partial-${i}`}
+                                    className="star-rating partial-star"
+                                    style={{ '--fill-percentage': `${partialFill}%` }}
+                                  >
+                                    ★
+                                  </span>
+                                );
+                              }
+                              return <span key={`empty-${i}`} className="star-rating empty-star">★</span>;
+                            } else {
+                              return <span key={`filled-${i}`} className="star-rating filled-star">★</span>;
+                            }
+                          })}
+                        </div>
+                        <p className="text-xl text-gray-600 font-forum mt-2">— {review.userName || 'Аноним'}</p>
+                      </div>
+                      <div className="w-6 h-6 bg-brown-500 rounded-full flex items-center justify-center text-white" style={{ transform: 'rotate(45deg)' }}>
+                        <span style={{ transform: 'rotate(-45deg)' }}>♦</span>
+                      </div>
+                    </div>
+                    <div className="absolute top-4 right-4 text-gray-400 text-sm">⋇⋇</div>
+                  </div>
+                );
+              })
             ) : (
-              <p className="text-gray-400">Нет отзывов</p>
+              <p className="text-gray-400 text-center">Нет отзывов</p>
             )}
           </div>
         </div>

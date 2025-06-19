@@ -1,22 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import api from '../api/axios';
-import L from 'leaflet';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import 'leaflet-routing-machine';
-import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
-
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-});
+import '../global.css';
 
 function Excursions() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -26,70 +15,57 @@ function Excursions() {
     category: searchParams.get('category') || '',
     search: searchParams.get('search') || '',
   });
-  const mapRef = useRef(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-  const fetchExcursions = async () => {
-    try {
-      let appliedFilters = { ...filters };
-      if (user?.id) {
-        try {
-          const prefsResponse = await api.get(`/api/excursions/preferences/${user.id}`).catch(err => { console.log('Ошибка предпочтений:', err); return { data: {} }; });
-          const prefs = prefsResponse.data || {};
-          appliedFilters = {
-            city: filters.city || prefs.PreferredCity || '',
-            category: filters.category || prefs.PreferredDirection || '', // Исправлено на PreferredDirection
-            search: filters.search,
-          };
-        } catch (prefErr) {
-          console.warn('Предпочтения не найдены, используем фильтры:', prefErr);
+    const fetchExcursions = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        let appliedFilters = { ...filters };
+        if (user?.id) {
+          try {
+            const prefsResponse = await api.get(`/api/excursions/preferences/${user.id}`);
+            const prefs = prefsResponse.data || {};
+            appliedFilters = {
+              city: filters.city || prefs.PreferredCity || '',
+              category: filters.category || prefs.PreferredDirection || '',
+              search: filters.search,
+            };
+          } catch (prefErr) {
+            console.warn('Предпочтения не найдены:', prefErr);
+          }
         }
+
+        const response = await api.get('/api/excursions', {
+          params: {
+            city: appliedFilters.city,
+            category: appliedFilters.category,
+            search: appliedFilters.search,
+          },
+        });
+        const data = response.data || [];
+        const sortedExcursions = data.sort((a, b) => {
+          const aMatches = (!appliedFilters.city || a.city === appliedFilters.city) && (!appliedFilters.category || a.category === appliedFilters.category);
+          const bMatches = (!appliedFilters.city || b.city === appliedFilters.city) && (!appliedFilters.category || b.category === appliedFilters.category);
+          return aMatches === bMatches ? 0 : aMatches ? -1 : 1;
+        });
+        setExcursions(sortedExcursions);
+      } catch (err) {
+        console.error('Ошибка загрузки экскурсий:', err);
+        setError(err.response?.status === 401 ? 'Сессия истекла. Пожалуйста, войдите заново.' : 'Не удалось загрузить экскурсии.');
+        if (err.response?.status === 401) {
+          navigate('/login');
+        } else {
+          setExcursions([]);
+        }
+      } finally {
+        setLoading(false);
       }
-
-      const response = await api.get('/api/excursions', {
-        params: {
-          city: appliedFilters.city,
-          category: appliedFilters.category,
-          search: appliedFilters.search,
-        },
-      });
-      const data = response.data || [];
-      const sortedExcursions = data.sort((a, b) => {
-        const aMatches = (!appliedFilters.city || a.city === appliedFilters.city) && (!appliedFilters.category || a.category === appliedFilters.category);
-        const bMatches = (!appliedFilters.city || b.city === appliedFilters.city) && (!appliedFilters.category || b.category === appliedFilters.category);
-        return aMatches === bMatches ? 0 : aMatches ? -1 : 1;
-      });
-      setExcursions(sortedExcursions);
-    } catch (err) {
-      console.error('Ошибка загрузки экскурсий:', err);
-      if (err.response?.status === 401) {
-        alert('Сессия истекла. Пожалуйста, войдите заново.');
-        navigate('/login');
-      } else {
-        setExcursions([]); // Выводим пустой список вместо ошибки
-      }
-    }
-  };
-  fetchExcursions();
-}, [navigate, user?.id, filters.city, filters.category, filters.search]);
-
-  useEffect(() => {
-    if (mapRef.current && excursions.length) {
-      const map = mapRef.current;
-      map.eachLayer((l) => l instanceof L.Routing.Control && map.removeControl(l));
-
-      const waypoints = excursions
-        .flatMap((e) => e.attractions?.[0] || [])
-        .filter((a) => a?.coordinates?.y && a?.coordinates?.x && !isNaN(a.coordinates.y) && !isNaN(a.coordinates.x))
-        .map((a) => L.latLng(a.coordinates.y, a.coordinates.x));
-
-      if (waypoints.length > 0) {
-        map.fitBounds(L.latLngBounds(waypoints));
-      } else {
-        map.setView([53.9, 27.5667], 8);
-      }
-    }
-  }, [excursions]);
+    };
+    fetchExcursions();
+  }, [navigate, user?.id, filters.city, filters.category, filters.search]);
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -105,140 +81,174 @@ function Excursions() {
     );
   };
 
-  const defaultCenter = [53.9, 27.5667];
-  const firstValidCoords = excursions.find((e) => e.attractions?.[0]?.coordinates?.y && e.attractions?.[0]?.coordinates?.x);
-  const mapCenter = firstValidCoords?.attractions?.[0]?.coordinates
-    ? [firstValidCoords.attractions[0].coordinates.y, firstValidCoords.attractions[0].coordinates.x]
-    : defaultCenter;
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
-  const styles = `
-    .brand { font-size: 24px; font-weight: bold; color: #FFD700; text-align: center; padding: 10px; }
-    .card { background: #1F2937; border-radius: 8px; overflow: hidden; cursor: pointer; transition: transform 0.2s; }
-    .card:hover { transform: scale(1.02); }
-    .card-title { font-size: 18px; font-weight: bold; color: #FBBF24; }
-    .card-text { font-size: 14px; color: #D1D5DB; }
-    .clicked { animation: pulse 1.6s ease-out; }
-    @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
-  `;
+  if (loading) return <div className="text-center text-yellow-400 mt-20">Загрузка...</div>;
+  if (error) return <div className="text-center text-red-500 mt-20">Ошибка: {error}</div>;
+
+  const uniqueCities = [...new Set(excursions.map((e) => e.city))].filter(Boolean);
+  const uniqueCategories = [...new Set(excursions.map((e) => e.category))].filter(Boolean);
 
   return (
-    <div className="min-h-screen">
-      <style>{styles}</style>
-      <div className="brand">Путешествия онлайн</div>
-      <div className="min-h-screen pt-20">
-        <div className="container mx-auto py-12 px-4">
-          <h1
-            onClick={(e) => {
-              e.target.classList.add('clicked');
-              setTimeout(() => e.target.classList.remove('clicked'), 1600);
-            }}
-            className="text-4xl font-bold text-center mb-6 text-yellow-400"
+    <div className="relative min-h-screen" style={{ backgroundImage: "url('/Города Беларуси.jpg')", backgroundSize: 'cover', backgroundPosition: 'center' }}>
+      <div className="bg-black bg-opacity-40 absolute inset-0"></div>
+      <div className="container mx-auto py-6 relative z-10">
+        <div className="navbar">
+          <div className="flex justify-center w-full">
+            <Link to="/" className="text-2xl text-gray-800 hover:text-yellow-600 font-forum mx-4">Главная</Link>
+            <Link to="/excursions" className="text-2xl text-gray-800 hover:text-yellow-600 font-forum mx-4">Экскурсии</Link>
+            <Link to="/attractions" className="text-2xl text-gray-800 hover:text-yellow-600 font-forum mx-4">Достопримечательности</Link>
+          </div>
+          {user && (
+            <div className="ml-auto flex items-center space-x-4">
+              <Link to="/profile" className="profile-button-custom">
+                Профиль
+              </Link>
+              <button onClick={handleLogout} className="text-2xl text-red-500 hover:text-orange-500 font-forum">Выйти</button>
+            </div>
+          )}
+        </div>
+        <div className="flex justify-end space-x-4 mt-2">
+          {!user && (
+            <>
+              <Link to="/register" className="text-xl text-white hover:text-yellow-600 font-forum bg-blue-200 bg-opacity-50 px-4 py-2 rounded-lg border-2 border-white">Регистрация</Link>
+              <Link to="/login" className="text-xl text-gray-600 hover:text-yellow-600 font-forum bg-blue-200 bg-opacity-50 px-4 py-2 rounded-lg border-2 border-white">Вход</Link>
+            </>
+          )}
+        </div>
+      </div>
+      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center text-white z-10">
+        <h1 className="text-7xl font-forum font-normal leading-tight max-w-3xl mx-auto break-words whitespace-pre-wrap">
+          <span className="block tracking-[0.35em]">ЭКСКУРСИИ</span>
+          <span className="block tracking-[0.2em]">ПО БЕЛАРУСИ</span>
+        </h1>
+      </div>
+      <div className="absolute top-1/6 left-1/3 transform -translate-x-1/4 z-10">
+        <div className="diamond w-30 h-30 bg-glass"></div>
+      </div>
+      <div className="absolute top-1/4 right-1/3 transform translate-x-1/4 z-10">
+        <div className="diamond w-40 h-40 bg-glass"></div>
+      </div>
+      <div className="absolute top-1/2 left-1/4 transform -translate-x-1/4 z-10">
+        <div className="diamond w-50 h-50 bg-glass"></div>
+      </div>
+      <div className="absolute top-2/3 right-1/4 transform translate-x-1/4 z-10">
+        <div className="diamond w-35 h-35 bg-glass"></div>
+      </div>
+      <div className="absolute bottom-1/6 left-1/4 transform -translate-x-1/4 z-10">
+        <div className="diamond w-45 h-45 bg-glass"></div>
+      </div>
+      <div className="absolute bottom-1/4 right-1/3 transform translate-x-1/4 z-10">
+        <div className="diamond w-30 h-30 bg-glass"></div>
+      </div>
+      <div className="absolute top-3/4 left-2/5 transform -translate-x-1/4 z-10">
+        <div className="diamond w-40 h-40 bg-glass"></div>
+      </div>
+
+      <div className="container mx-auto py-12 px-4 relative z-10">
+        <h2 className="text-center mb-8 custom-title">
+          <span style={{ display: 'block' }}>Доступные</span>
+          <span style={{ display: 'block' }}>экскурсии</span>
+          <span className="diamond-outer" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotate(45deg)', width: '150px', height: '150px', border: '2px solid #FFFFFF', opacity: '0.5', zIndex: -1 }}></span>
+          <span className="diamond-inner" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) rotate(45deg)', width: '120px', height: '120px', border: '2px solid #FFFFFF', opacity: '0.5', zIndex: -1 }}></span>
+        </h2>
+        <div className="filter-bar mb-6">
+          <select
+            name="city"
+            value={filters.city}
+            onChange={handleFilterChange}
+            className="p-2 rounded-lg bg-transparent text-white border-0 border-b-2 border-yellow-400 focus:outline-none focus:border-white transition duration-300 mr-4"
           >
-            Экскурсии
-          </h1>
-          <div className="filters flex gap-4 mb-6">
-            <select
-              name="city"
-              value={filters.city}
-              onChange={handleFilterChange}
-              className="p-2 rounded-lg bg-gray-700 text-gray-200"
-            >
-              <option value="">Все города</option>
-              {[...new Set(excursions.map((e) => e.city))].map((city) => (
-                <option key={city} value={city}>
-                  {city}
-                </option>
-              ))}
-            </select>
-            <select
-              name="category"
-              value={filters.category}
-              onChange={handleFilterChange}
-              className="p-2 rounded-lg bg-gray-700 text-gray-200"
-            >
-              <option value="">Все категории</option>
-              {[...new Set(excursions.map((e) => e.category))].filter(Boolean).map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
-            <input
-              type="text"
-              name="search"
-              value={filters.search}
-              onChange={handleFilterChange}
-              placeholder="Поиск..."
-              className="p-2 rounded-lg bg-gray-700 text-gray-200"
-            />
-          </div>
-          <div className="mb-12">
-            <h3 className="text-2xl font-semibold mb-6 text-[#2A3A2E]">Карта</h3>
-            <MapContainer
-              center={mapCenter}
-              zoom={8}
-              style={{ height: '400px', width: '100%', borderRadius: '16px', boxShadow: '0 6px 20px rgba(0, 0, 0, 0.15)' }}
-              ref={mapRef}
-            >
-              <TileLayer
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              />
-              {excursions.map((e) =>
-                e.attractions?.[0]?.coordinates?.y && e.attractions?.[0]?.coordinates?.x && (
-                  <Marker key={e.id} position={[e.attractions[0].coordinates.y, e.attractions[0].coordinates.x]}>
-                    <Popup>{e.title}</Popup>
-                  </Marker>
-                )
-              )}
-            </MapContainer>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {excursions.length > 0 ? (
-              excursions.map((e) => (
+            <option value="">Все города</option>
+            {uniqueCities.map((city, index) => (
+              <option key={index} value={city} className="bg-gray-800">{city}</option>
+            ))}
+          </select>
+          <select
+            name="category"
+            value={filters.category}
+            onChange={handleFilterChange}
+            className="p-2 rounded-lg bg-transparent text-white border-0 border-b-2 border-yellow-400 focus:outline-none focus:border-white transition duration-300 mr-4"
+          >
+            <option value="">Все категории</option>
+            {uniqueCategories.map((cat, index) => (
+              <option key={index} value={cat} className="bg-gray-800">{cat}</option>
+            ))}
+          </select>
+          <input
+            type="text"
+            name="search"
+            value={filters.search}
+            onChange={handleFilterChange}
+            placeholder="Поиск экскурсий..."
+            className="p-2 rounded-lg bg-transparent text-white border-0 border-b-2 border-yellow-400 focus:outline-none focus:border-white transition duration-300"
+          />
+        </div>
+        <div className="excursion-list">
+          {excursions.length > 0 ? (
+            excursions.map((excursion, index) => {
+              let photoUrl = '/default.jpg';
+              switch (excursion.title) {
+                case 'Музей Минска':
+                  photoUrl = '/Минск.jfif';
+                  break;
+                case 'Брестская крепость':
+                  photoUrl = '/Брестская_область.jpg';
+                  break;
+                case 'Несвижский замок':
+                  photoUrl = '/Несвиж.jpeg';
+                  break;
+                case 'Мирский замок':
+                  photoUrl = '/Мирский_замок.jpg';
+                  break;
+                case 'Эко-туры':
+                  photoUrl = '/Могилев.jpg';
+                  break;
+                default:
+                  photoUrl = excursion.images && excursion.images.length > 0 ? `http://localhost:5248${excursion.images[0]}` : '/default.jpg';
+              }
+
+              const rating = parseFloat(excursion.rating || 0);
+              const filledDiamonds = Math.min(Math.floor(rating), 5);
+              const partialFill = (rating % 1) * 100;
+
+              return (
                 <div
-                  key={e.id}
-                  id={`excursion-${e.id}`}
+                  key={excursion.id}
                   className="card"
-                  onClick={() => navigate(`/excursion/${e.id}`)}
+                  onClick={() => navigate(`/excursion/${excursion.id}`)}
                 >
-                  <div
-                    className="w-full h-48 bg-gray-500 flex items-center justify-center rounded-t-lg"
-                    style={{ backgroundColor: '#1F2937' }} // Пустой прямоугольник
-                  >
-                    {e.images && e.images.length > 0 && (
-                      <img
-                        src={`http://localhost:5248${e.images[0]}`}
-                        alt={e.title}
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                  </div>
-                  <div className="p-4">
-                    <h3 className="card-title">{e.title}</h3>
-                    <p className="card-text mb-2">Рейтинг: {e.rating || 0}</p>
-                    <p className="card-text mb-2">
-                      Места: {hasAvailableTickets(e) ? 'Есть' : 'Нет'}
-                    </p>
-                    <p className="card-text mb-2">Категория: {e.category || 'Не указана'}</p>
-                    {user && user.role === 'user' && hasAvailableTickets(e) && (
-                      <button
-                        className="w-full bg-green-600 text-white p-2 rounded-lg font-medium hover:bg-green-700 transition"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/excursion/${e.id}/book`);
-                        }}
-                      >
-                        БРОНИРОВАТЬ
-                      </button>
-                    )}
+                  <div className="card-overlay" style={{ backgroundImage: `url(${photoUrl})` }}>
+                    <span className="card-title">{excursion.title || 'Без названия'}</span>
+                    <span className="card-text">{excursion.category || 'Без направления'}</span>
+                    <div className="rating-diamonds excursion-rating-diamonds" style={{ position: 'absolute', bottom: '10px', right: '10px', flexDirection: 'column', alignItems: 'flex-end' }}>
+                      {Array.from({ length: 5 }, (_, i) => {
+                        const fillIndex = i; // Индексация от 0 до 4, чтобы заполненные были снизу
+                        if (fillIndex < 5 - filledDiamonds) {
+                          return <span key={`empty-${i}`} className="diamond-rating empty-diamond"></span>;
+                        } else if (fillIndex === 5 - filledDiamonds && partialFill > 0) {
+                          return (
+                            <span
+                              key={`partial-${i}`}
+                              className="diamond-rating partial-diamond"
+                              style={{ '--fill-percentage': `${partialFill}%` }}
+                            ></span>
+                          );
+                        } else {
+                          return <span key={`filled-${i}`} className="diamond-rating filled-diamond"></span>;
+                        }
+                      })}
+                    </div>
                   </div>
                 </div>
-              ))
-            ) : (
-              <p className="text-gray-400 text-center">Нет доступных экскурсий</p>
-            )}
-          </div>
+              );
+            })
+          ) : (
+            <p className="text-gray-400 text-center w-full">Нет доступных экскурсий</p>
+          )}
         </div>
       </div>
     </div>

@@ -46,8 +46,11 @@ p, label, span {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   padding: 20px;
   width: 100%;
-  max-width: 400px;
+  max-width: 300px;
+  height: 250px;
   color: #FFFFFF;
+  position: relative;
+  overflow: hidden;
 }
 
 .card:hover {
@@ -77,6 +80,17 @@ p, label, span {
 .card-text {
   font-size: 1rem;
   color: #E0E0E0;
+}
+
+.card-overlay {
+  position: relative;
+  background-size: cover;
+  background-position: center;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 10px;
 }
 
 /* Кнопки */
@@ -150,24 +164,35 @@ input::placeholder, textarea::placeholder {
 }
 
 /* Фильтры и форма поиска */
-.search-form {
+.filter-bar {
   display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
   justify-content: center;
-  padding: 2rem;
-  background: rgba(34, 47, 43, 0.8);
-  border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  gap: 1rem;
+  padding: 1rem 0;
+  background: transparent;
+  margin-bottom: 2rem;
 }
 
-.search-form input,
-.search-form select {
+.filter-bar select,
+.filter-bar input {
   width: 200px;
-  padding: 10px;
+  padding: 8px;
   color: #FFFFFF;
-  background: rgba(34, 47, 43, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid #FFD700;
+  transition: border-color 0.3s ease;
+}
+
+.filter-bar select:focus,
+.filter-bar input:focus {
+  outline: none;
+  border-bottom-color: #FFFFFF;
+}
+
+.filter-bar option {
+  background: rgba(34, 47, 43, 0.9);
+  color: #FFFFFF;
 }
 
 /* Ошибки */
@@ -226,80 +251,7 @@ input::placeholder, textarea::placeholder {
   text-transform: uppercase !important;
   transition: border-color 0.3s ease, color 0.3s ease !important;
   z-index: 1000 !important;
-}
-
-/* Ромбик сверху */
-.profile-button-custom[data-diamond-top]::before {
-  content: '' !important;
-  position: absolute !important;
-  top: -12px !important;
-  left: 50% !important;
-  width: 10px !important;
-  height: 10px !important;
-  background: #FFFFFF !important;
-  transform: translateX(-50%) rotate(45deg) !important;
-  z-index: 1001 !important;
-}
-
-/* Квадрат сверху слева */
-.profile-button-custom[data-square1]::after {
-  content: '' !important;
-  position: absolute !important;
-  top: -10px !important;
-  left: calc(25% - 4px) !important;
-  width: 8px !important;
-  height: 8px !important;
-  background: #FFFFFF !important;
-  z-index: 1001 !important;
-}
-
-/* Квадрат сверху справа */
-.profile-button-custom[data-square2]::after {
-  content: '' !important;
-  position: absolute !important;
-  top: -10px !important;
-  right: calc(25% - 4px) !important;
-  width: 8px !important;
-  height: 8px !important;
-  background: #FFFFFF !important;
-  z-index: 1001 !important;
-}
-
-/* Ромбик снизу */
-.profile-button-custom[data-diamond-bottom]::before {
-  content: '' !important;
-  position: absolute !important;
-  bottom: -12px !important;
-  left: 50% !important;
-  width: 10px !important;
-  height: 10px !important;
-  background: #FFFFFF !important;
-  transform: translateX(-50%) rotate(45deg) !important;
-  z-index: 1001 !important;
-}
-
-/* Квадрат снизу слева */
-.profile-button-custom[data-square3]::after {
-  content: '' !important;
-  position: absolute !important;
-  bottom: -10px !important;
-  left: calc(25% - 4px) !important;
-  width: 8px !important;
-  height: 8px !important;
-  background: #FFFFFF !important;
-  z-index: 1001 !important;
-}
-
-/* Квадрат снизу справа */
-.profile-button-custom[data-square4]::after {
-  content: '' !important;
-  position: absolute !important;
-  bottom: -10px !important;
-  right: calc(25% - 4px) !important;
-  width: 8px !important;
-  height: 8px !important;
-  background: #FFFFFF !important;
-  z-index: 1001 !important;
+  line-height: 1 !important;
 }
 
 /* Эффект наведения */
@@ -383,8 +335,8 @@ input::placeholder, textarea::placeholder {
 
 .bg-glass {
   background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.3);
   box-shadow: 0 4px 16px 0 rgba(31, 38, 135, 0.2);
 }
@@ -419,4 +371,316 @@ input::placeholder, textarea::placeholder {
     font-size: 1.2rem;
     padding: 4px 15px !important;
   }
+}
+
+/* Стили для карточек городов */
+.city-card {
+  min-width: 300px;
+  height: 400px;
+  background-size: cover;
+  background-position: center;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.city-card:hover {
+  transform: scale(1.05);
+}
+
+.city-card .card-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 20px;
+  color: white;
+}
+
+.city-card .rating-diamonds {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.diamond-rating {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  transform: rotate(45deg);
+  border: 1px solid white;
+  position: relative;
+  margin: 0;
+  padding: 0;
+  background-clip: content-box;
+}
+
+.filled-diamond {
+  background-color: white;
+}
+
+.empty-diamond {
+  background-color: transparent;
+}
+
+.partial-diamond {
+  background-color: transparent;
+  overflow: hidden;
+}
+
+.partial-diamond::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: var(--fill-percentage, 0%);
+  background-color: white;
+  clip-path: polygon(0 50%, 50% 0, 100% 50%, 50% 100%);
+  transform: rotate(-45deg);
+  transition: height 0.3s ease;
+}
+
+/* Стили для стрелок свайпа */
+.arrow-diamond {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 2px solid white;
+  color: white;
+  font-size: 20px;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+}
+
+.left-arrow {
+  left: 0;
+}
+
+.right-arrow {
+  right: 0;
+}
+
+.arrow-diamond:hover {
+  color: #FFC107;
+  border-color: #FFC107;
+}
+
+/* Убираем ползунок */
+.city-scroll::-webkit-scrollbar {
+  display: none;
+}
+.city-scroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Фон и переход */
+.bg-light-beige {
+  background-color: #F5E8D9;
+  transition: background-color 0.5s ease;
+}
+
+.beige-mist {
+  background-color: #F5F5DC;
+}
+
+.custom-title {
+  font-family: 'Forum', serif;
+  font-size: 80px;
+  color: #000000 !important;
+  font-weight: 300;
+  position: relative;
+  text-align: center;
+  margin-bottom: 2rem;
+  padding: 20px 20px;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+  z-index: 1;
+}
+
+.custom-title span {
+  display: block;
+}
+
+.custom-title span:nth-child(1) {
+  padding-right: 0.25em;
+}
+
+.custom-title .diamond-outer {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(45deg);
+  width: 150px;
+  height: 150px;
+  border: 2px solid #FFFFFF;
+  opacity: 0.5;
+  zIndex: -1;
+}
+
+.custom-title .diamond-inner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(45deg);
+  width: 120px;
+  height: 120px;
+  border: 2px solid #FFFFFF;
+  opacity: 0.5;
+  zIndex: -1;
+}
+
+/* Список экскурсий */
+.excursion-list {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  justify-content: center;
+}
+
+/* Специфичные стили для рейтинга в списке экскурсий */
+.excursion-rating-diamonds {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+/* Стили для попапа карты */
+.custom-popup .leaflet-popup-content-wrapper {
+  background: rgba(34, 47, 43, 0.9);
+  color: #FFFFFF;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.custom-popup .leaflet-popup-tip {
+  background: rgba(34, 47, 43, 0.9);
+}
+
+/* Адаптивность */
+@media (max-width: 1024px) {
+  h1 {
+    font-size: 5rem;
+    max-width: 100%;
+  }
+
+  .filter-bar {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .filter-bar select,
+  .filter-bar input {
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+
+  .custom-title {
+    transform: translateX(0);
+  }
+}
+
+@media (max-width: 768px) {
+  h1 {
+    font-size: 3.5rem;
+  }
+
+  /* Стили для детальной карточки */
+.card-detail {
+  background: rgba(34, 47, 43, 0.9);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  padding: 2rem;
+  color: #E0E0E0;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card-detail:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+.card-detail img {
+  width: 100%;
+  height: 24rem;
+  object-fit: cover;
+  border-radius: 8px;
+  transition: transform 0.3s ease;
+}
+
+.card-detail .card-text {
+  font-size: 1.1rem;
+  color: #D3D3D3;
+  line-height: 1.6;
+}
+
+.card-detail ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+}
+
+.card-detail .btn-secondary {
+  background: #C8102E;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+}
+
+.card-detail .btn-secondary:hover {
+  background: #E0203E;
+  transform: translateY(-2px);
+}
+
+.card-detail .diamond {
+  transform: rotate(45deg);
+  position: absolute;
+  z-index: -1;
+}
+
+/* Рейтинг */
+.excursion-rating-diamonds {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+}
+
+.diamond-rating {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  transform: rotate(45deg);
+  border: 1px solid #FFD700;
+}
+
+.filled-diamond {
+  background-color: #FFD700;
+}
+
+.empty-diamond {
+  background-color: transparent;
+}
 }
